@@ -676,8 +676,7 @@ export function OnboardingWizard() {
                           value: "openclaw" as const,
                           label: "OpenClaw",
                           icon: Bot,
-                          desc: "Notify OpenClaw webhook",
-                          comingSoon: true
+                          desc: "Notify OpenClaw webhook"
                         },
                         {
                           value: "cursor" as const,
