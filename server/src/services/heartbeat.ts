@@ -1383,13 +1383,25 @@ export function heartbeatService(db: Db) {
           if (issueId && summary.length > 0) {
             try {
               const marker = `[run:${finalizedRun.id}]`;
-              const body = `${marker} Summary\n\n${summary}`.slice(0, AUTO_COMMENT_MAX_CHARS);
+              const body = (
+                `${marker} Update\n\n` +
+                `<details>\n<summary>Summary</summary>\n\n` +
+                `${summary}\n\n` +
+                `</details>`
+              ).slice(0, AUTO_COMMENT_MAX_CHARS);
 
-              // Best-effort de-dupe: skip if a comment for this run already exists.
+              // De-dupe/merge: if a comment for this run already exists, update it in-place.
               const existing = await db
-                .select({ id: issueComments.id })
+                .select({ id: issueComments.id, body: issueComments.body })
                 .from(issueComments)
-                .where(and(eq(issueComments.companyId, finalizedRun.companyId), eq(issueComments.issueId, issueId), sql`${issueComments.body} like ${`%${marker}%`}`))
+                .where(
+                  and(
+                    eq(issueComments.companyId, finalizedRun.companyId),
+                    eq(issueComments.issueId, issueId),
+                    sql`${issueComments.body} like ${`%${marker}%`}`,
+                  ),
+                )
+                .orderBy(desc(issueComments.createdAt))
                 .limit(1);
 
               if (existing.length === 0) {
@@ -1399,6 +1411,14 @@ export function heartbeatService(db: Db) {
                   authorAgentId: agent.id,
                   body,
                 });
+              } else {
+                await db
+                  .update(issueComments)
+                  .set({ body, updatedAt: new Date() })
+                  .where(eq(issueComments.id, existing[0]!.id));
+
+                // Ensure issue recency reflects the update.
+                await db.update(issues).set({ updatedAt: new Date() }).where(eq(issues.id, issueId));
               }
             } catch (err) {
               logger.warn({ err, companyId: finalizedRun.companyId, runId: finalizedRun.id }, "failed to auto-comment run summary");
