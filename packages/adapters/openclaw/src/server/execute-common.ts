@@ -275,6 +275,27 @@ export function buildPaperclipEnvForWake(ctx: AdapterExecutionContext, wakePaylo
     paperclipEnv.PAPERCLIP_LINKED_ISSUE_IDS = wakePayload.issueIds.join(",");
   }
 
+  // Workspace path hints (useful when the agent runtime is outside the Paperclip container).
+  // Paperclip may include a workspace cwd in the adapter context.
+  const maybeWorkspace = (ctx.context as Record<string, unknown> | null)?.paperclipWorkspace;
+  if (typeof maybeWorkspace === "object" && maybeWorkspace && !Array.isArray(maybeWorkspace)) {
+    const cwd = nonEmpty((maybeWorkspace as Record<string, unknown>).cwd);
+    if (cwd) {
+      paperclipEnv.PAPERCLIP_WORKSPACE_CWD = cwd;
+
+      // If the Paperclip container mounts its home at /paperclip, provide a best-effort host-path mapping.
+      // Set PAPERCLIP_HOST_PAPERCLIP_HOME on the Paperclip server/container to the corresponding host path.
+      const containerHome = "/paperclip";
+      paperclipEnv.PAPERCLIP_CONTAINER_HOME = containerHome;
+
+      const hostHome = nonEmpty(process.env.PAPERCLIP_HOST_PAPERCLIP_HOME);
+      if (hostHome && cwd.startsWith(containerHome + "/")) {
+        paperclipEnv.PAPERCLIP_HOST_PAPERCLIP_HOME = hostHome;
+        paperclipEnv.PAPERCLIP_HOST_WORKSPACE_CWD = hostHome + cwd.slice(containerHome.length);
+      }
+    }
+  }
+
   return paperclipEnv;
 }
 
@@ -291,6 +312,12 @@ export function buildWakeText(payload: WakePayload, paperclipEnv: Record<string,
     "PAPERCLIP_APPROVAL_ID",
     "PAPERCLIP_APPROVAL_STATUS",
     "PAPERCLIP_LINKED_ISSUE_IDS",
+
+    // Optional workspace hints.
+    "PAPERCLIP_WORKSPACE_CWD",
+    "PAPERCLIP_CONTAINER_HOME",
+    "PAPERCLIP_HOST_PAPERCLIP_HOME",
+    "PAPERCLIP_HOST_WORKSPACE_CWD",
   ];
 
   const envLines: string[] = [];

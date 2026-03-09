@@ -91,6 +91,36 @@ Expected:
 
 ## 4) Configure the OpenClaw adapter in Paperclip
 
+### Workspace path mapping (optional, but recommended)
+
+Paperclip runs inside Docker, while OpenClaw typically runs on the host.
+If you want the OpenClaw agent to access Paperclip-created workspaces on disk,
+Paperclip must provide a **host-visible path**.
+
+This adapter will include these hints in the wake context when available:
+
+- `PAPERCLIP_WORKSPACE_CWD` (container path, e.g. `/paperclip/instances/.../workspaces/<id>`)
+- `PAPERCLIP_HOST_WORKSPACE_CWD` (host path) **only if** you set:
+  - `PAPERCLIP_HOST_PAPERCLIP_HOME` on the Paperclip server container
+
+Set `PAPERCLIP_HOST_PAPERCLIP_HOME` to the host path that corresponds to the
+container's `/paperclip` mount.
+
+If you are using a named volume, you can discover its host path with:
+
+```bash
+docker volume inspect paperclip_paperclip-data
+```
+
+Then set the env var (example):
+
+```bash
+PAPERCLIP_HOST_PAPERCLIP_HOME=/var/lib/docker/volumes/<volume-name>/_data
+```
+
+A cleaner alternative is switching `/paperclip` to a bind mount (so the host
+path is stable and human-readable).
+
 In Paperclip UI (Board → Agents/Adapters), configure:
 
 - **Adapter**: `openclaw`
