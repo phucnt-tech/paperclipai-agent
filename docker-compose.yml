@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: paperclip
       POSTGRES_PASSWORD: paperclip
@@ -11,21 +11,26 @@ services:
       timeout: 5s
       retries: 30
     ports:
-      - "5432:5432"
+      - "${PAPERCLIP_DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   server:
     build: .
     ports:
-      - "3100:3100"
+      - "${PAPERCLIP_PORT:-3100}:3100"
+    # On Linux, host.docker.internal is not guaranteed unless we map it.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgres://paperclip:paperclip@db:5432/paperclip
       PORT: "3100"
       SERVE_UI: "true"
       PAPERCLIP_DEPLOYMENT_MODE: "authenticated"
       PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
-      PAPERCLIP_PUBLIC_URL: "${PAPERCLIP_PUBLIC_URL:-http://localhost:3100}"
+      PAPERCLIP_PUBLIC_URL: "${PAPERCLIP_PUBLIC_URL:-http://localhost:${PAPERCLIP_PORT:-3100}}"
+      # Comma-separated allowlist for private exposure Host header guard.
+      PAPERCLIP_ALLOWED_HOSTNAMES: "${PAPERCLIP_ALLOWED_HOSTNAMES:-localhost,127.0.0.1,10.66.66.1}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
     volumes:
       - paperclip-data:/paperclip
@@ -35,4 +40,6 @@ services:
 
 volumes:
   pgdata:
+    external: true
+    name: da8ffeebc55fa983116098ad9237cc520766fc3fe542056e56ec3095e49bfaae
   paperclip-data:
