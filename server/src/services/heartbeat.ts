@@ -1383,14 +1383,9 @@ export function heartbeatService(db: Db) {
           if (issueId && summary.length > 0) {
             try {
               const marker = `[run:${finalizedRun.id}]`;
-              // Paperclip UI sanitizes HTML, so avoid <details>/<summary>.
-              // Keep the issue comment readable and point to the Run detail for full context.
-              const clippedSummary = summary.length > 4000 ? `${summary.slice(0, 4000)}\n\n…(truncated)` : summary;
               const body = (
                 `${marker} Update\n\n` +
-                `Summary:\n\n` +
-                `\`\`\`text\n${clippedSummary}\n\`\`\`\n\n` +
-                `Tip: mở tab Runs → chọn run id ${finalizedRun.id} để xem đầy đủ log/transcript.`
+                `Run ${finalizedRun.id} đã hoàn tất. Mở tab Runs để xem chi tiết log/transcript.`
               ).slice(0, AUTO_COMMENT_MAX_CHARS);
 
               // De-dupe/merge: if a comment for this run already exists, update it in-place.
