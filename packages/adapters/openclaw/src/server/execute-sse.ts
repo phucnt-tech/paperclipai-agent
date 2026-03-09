@@ -2,6 +2,7 @@ import type { AdapterExecutionContext, AdapterExecutionResult } from "@paperclip
 import {
   appendWakeTextToOpenResponsesInput,
   buildExecutionState,
+  isChatCompletionsEndpoint,
   isOpenResponsesEndpoint,
   isTextRequiredResponse,
   readAndLogResponseText,
@@ -260,18 +261,22 @@ function buildSseBody(input: {
   const payloadText = templateText ? `${templateText}\n\n${state.wakeText}` : state.wakeText;
 
   const isOpenResponses = isOpenResponsesEndpoint(url);
+  const isChatCompletions = isChatCompletionsEndpoint(url);
+
   const openResponsesInput = Object.prototype.hasOwnProperty.call(state.payloadTemplate, "input")
     ? appendWakeTextToOpenResponsesInput(state.payloadTemplate.input, state.wakeText)
     : payloadText;
+
+  const resolvedModel =
+    nonEmpty(state.payloadTemplate.model) ??
+    nonEmpty(configModel) ??
+    "openclaw";
 
   const body: Record<string, unknown> = isOpenResponses
     ? {
       ...state.payloadTemplate,
       stream: true,
-      model:
-          nonEmpty(state.payloadTemplate.model) ??
-          nonEmpty(configModel) ??
-          "openclaw",
+      model: resolvedModel,
       input: openResponsesInput,
       metadata: {
         ...toStringRecord(state.payloadTemplate.metadata),
@@ -279,19 +284,35 @@ function buildSseBody(input: {
         paperclip_session_key: state.sessionKey,
       },
     }
-    : {
-      ...state.payloadTemplate,
-      stream: true,
-      sessionKey: state.sessionKey,
-      text: payloadText,
-      paperclip: {
-        ...state.wakePayload,
+    : isChatCompletions
+      ? {
+        ...state.payloadTemplate,
+        stream: true,
+        model: resolvedModel,
+        // OpenAI Chat Completions requires at least one user message.
+        // Use payloadText as the user content so the gateway can route to the agent.
+        messages: [
+          {
+            role: "user",
+            content: payloadText,
+          },
+        ],
+        // Give the gateway a stable session hint when supported.
+        user: state.sessionKey,
+      }
+      : {
+        ...state.payloadTemplate,
+        stream: true,
         sessionKey: state.sessionKey,
-        streamTransport: "sse",
-        env: state.paperclipEnv,
-        context,
-      },
-    };
+        text: payloadText,
+        paperclip: {
+          ...state.wakePayload,
+          sessionKey: state.sessionKey,
+          streamTransport: "sse",
+          env: state.paperclipEnv,
+          context,
+        },
+      };
 
   const headers: Record<string, string> = {
     ...state.headers,

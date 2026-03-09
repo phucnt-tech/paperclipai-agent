@@ -137,6 +137,16 @@ export function isOpenResponsesEndpoint(url: string): boolean {
   }
 }
 
+export function isChatCompletionsEndpoint(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const path = normalizeUrlPath(parsed.pathname);
+    return path === "/v1/chat/completions" || path.endsWith("/v1/chat/completions");
+  } catch {
+    return false;
+  }
+}
+
 export function resolveEndpointKind(url: string): OpenClawEndpointKind {
   if (isOpenResponsesEndpoint(url)) return "open_responses";
   if (isWakeCompatibilityEndpoint(url)) return "hook_wake";
