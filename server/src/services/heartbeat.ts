@@ -1374,7 +1374,12 @@ export function heartbeatService(db: Db) {
         // This is adapter-agnostic and uses the adapterResult.summary as the human-facing output.
         if (AUTO_COMMENT_RUN_SUMMARY && outcome === "succeeded") {
           const summary = typeof adapterResult.summary === "string" ? adapterResult.summary.trim() : "";
-          const issueId = typeof context.issueId === "string" ? context.issueId : null;
+          const issueId =
+            typeof context.issueId === "string"
+              ? context.issueId
+              : typeof context.taskId === "string"
+                ? context.taskId
+                : null;
           if (issueId && summary.length > 0) {
             try {
               const marker = `[run:${finalizedRun.id}]`;
