@@ -87,7 +87,8 @@ const openclawAdapter: ServerAdapterModule = {
   testEnvironment: openclawTestEnvironment,
   onHireApproved: openclawOnHireApproved,
   models: openclawModels,
-  supportsLocalAgentJwt: false,
+  // Enable short-lived local agent JWT injection as PAPERCLIP_API_KEY.
+  supportsLocalAgentJwt: true,
   agentConfigurationDoc: openclawAgentConfigurationDoc,
 };
 

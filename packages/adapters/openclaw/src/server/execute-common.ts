@@ -263,6 +263,12 @@ export function buildPaperclipEnvForWake(ctx: AdapterExecutionContext, wakePaylo
     PAPERCLIP_RUN_ID: ctx.runId,
   };
 
+  // Inject a short-lived local agent JWT as PAPERCLIP_API_KEY when available.
+  // This allows the OpenClaw agent to call back into Paperclip's API without a manual claim/token file.
+  if (typeof ctx.authToken === "string" && ctx.authToken.trim().length > 0) {
+    paperclipEnv.PAPERCLIP_API_KEY = ctx.authToken.trim();
+  }
+
   if (paperclipApiUrlOverride) {
     paperclipEnv.PAPERCLIP_API_URL = paperclipApiUrlOverride;
   }
@@ -313,6 +319,9 @@ export function buildWakeText(payload: WakePayload, paperclipEnv: Record<string,
     "PAPERCLIP_APPROVAL_STATUS",
     "PAPERCLIP_LINKED_ISSUE_IDS",
 
+    // Optional auth hint.
+    "PAPERCLIP_API_KEY",
+
     // Optional workspace hints.
     "PAPERCLIP_WORKSPACE_CWD",
     "PAPERCLIP_CONTAINER_HOME",
@@ -327,14 +336,20 @@ export function buildWakeText(payload: WakePayload, paperclipEnv: Record<string,
     envLines.push(`${key}=${value}`);
   }
 
+  const hasApiKey = typeof paperclipEnv.PAPERCLIP_API_KEY === "string" && paperclipEnv.PAPERCLIP_API_KEY.trim().length > 0;
+
   const lines = [
     "Paperclip wake event for a cloud adapter.",
     "",
     "Set these values in your run context:",
     ...envLines,
-    `PAPERCLIP_API_KEY=<token from ${claimedApiKeyPath}>`,
-    "",
-    `Load PAPERCLIP_API_KEY from ${claimedApiKeyPath} (the token you saved after claim-api-key).`,
+    ...(hasApiKey
+      ? []
+      : [
+        `PAPERCLIP_API_KEY=<token from ${claimedApiKeyPath}>`,
+        "",
+        `Load PAPERCLIP_API_KEY from ${claimedApiKeyPath} (the token you saved after claim-api-key).`,
+      ]),
     "",
     `task_id=${payload.taskId ?? ""}`,
     `issue_id=${payload.issueId ?? ""}`,

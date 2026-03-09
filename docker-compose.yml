@@ -36,6 +36,7 @@ services:
       # Host path mapping for the /paperclip volume (lets non-container runtimes access workspaces on disk).
       PAPERCLIP_HOST_PAPERCLIP_HOME: "${PAPERCLIP_HOST_PAPERCLIP_HOME:-}"
       PAPERCLIP_AUTO_COMMENT_RUN_SUMMARY: "${PAPERCLIP_AUTO_COMMENT_RUN_SUMMARY:-true}"
+      PAPERCLIP_AGENT_JWT_SECRET: "${PAPERCLIP_AGENT_JWT_SECRET:-}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
     volumes:
       - paperclip-data:/paperclip
