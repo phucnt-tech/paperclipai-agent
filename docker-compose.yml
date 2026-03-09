@@ -33,6 +33,9 @@ services:
       PAPERCLIP_ALLOWED_HOSTNAMES: "${PAPERCLIP_ALLOWED_HOSTNAMES:-localhost,127.0.0.1,10.66.66.1}"
       # Explicit extra origins for Better Auth (must be full origins, including port).
       BETTER_AUTH_TRUSTED_ORIGINS: "${BETTER_AUTH_TRUSTED_ORIGINS:-http://10.66.66.1:3100}"
+      # Host path mapping for the /paperclip volume (lets non-container runtimes access workspaces on disk).
+      PAPERCLIP_HOST_PAPERCLIP_HOME: "${PAPERCLIP_HOST_PAPERCLIP_HOME:-}"
+      PAPERCLIP_AUTO_COMMENT_RUN_SUMMARY: "${PAPERCLIP_AUTO_COMMENT_RUN_SUMMARY:-true}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
     volumes:
       - paperclip-data:/paperclip

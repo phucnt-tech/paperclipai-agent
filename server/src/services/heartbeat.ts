@@ -11,6 +11,7 @@ import {
   heartbeatRuns,
   costEvents,
   issues,
+  issueComments,
   projectWorkspaces,
 } from "@paperclipai/db";
 import { conflict, notFound } from "../errors.js";
@@ -30,6 +31,9 @@ const HEARTBEAT_MAX_CONCURRENT_RUNS_MAX = 10;
 const DEFERRED_WAKE_CONTEXT_KEY = "_paperclipWakeContext";
 const startLocksByAgent = new Map<string, Promise<void>>();
 const REPO_ONLY_CWD_SENTINEL = "/__paperclip_repo_only__";
+
+const AUTO_COMMENT_RUN_SUMMARY = process.env.PAPERCLIP_AUTO_COMMENT_RUN_SUMMARY === "true";
+const AUTO_COMMENT_MAX_CHARS = 10_000;
 
 function appendExcerpt(prev: string, chunk: string) {
   return appendWithCap(prev, chunk, MAX_EXCERPT_BYTES);
@@ -1365,6 +1369,38 @@ export function heartbeatService(db: Db) {
             exitCode: adapterResult.exitCode,
           },
         });
+
+        // Optional workflow write-back: add a comment with the run summary to the issue.
+        // This is adapter-agnostic and uses the adapterResult.summary as the human-facing output.
+        if (AUTO_COMMENT_RUN_SUMMARY && outcome === "succeeded") {
+          const summary = typeof adapterResult.summary === "string" ? adapterResult.summary.trim() : "";
+          const issueId = typeof context.issueId === "string" ? context.issueId : null;
+          if (issueId && summary.length > 0) {
+            try {
+              const marker = `[run:${finalizedRun.id}]`;
+              const body = `${marker} Summary\n\n${summary}`.slice(0, AUTO_COMMENT_MAX_CHARS);
+
+              // Best-effort de-dupe: skip if a comment for this run already exists.
+              const existing = await db
+                .select({ id: issueComments.id })
+                .from(issueComments)
+                .where(and(eq(issueComments.companyId, finalizedRun.companyId), eq(issueComments.issueId, issueId), sql`${issueComments.body} like ${`%${marker}%`}`))
+                .limit(1);
+
+              if (existing.length === 0) {
+                await db.insert(issueComments).values({
+                  companyId: finalizedRun.companyId,
+                  issueId,
+                  authorAgentId: agent.id,
+                  body,
+                });
+              }
+            } catch (err) {
+              logger.warn({ err, companyId: finalizedRun.companyId, runId: finalizedRun.id }, "failed to auto-comment run summary");
+            }
+          }
+        }
+
         await releaseIssueExecutionAndPromote(finalizedRun);
       }
 
