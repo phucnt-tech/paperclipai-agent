@@ -22,6 +22,8 @@ type ConsumedSse = {
   terminal: boolean;
   failed: boolean;
   errorMessage: string | null;
+  // Best-effort accumulated assistant output (for OpenAI-compatible streams).
+  assistantText: string;
 };
 
 function nonEmpty(value: unknown): string | null {
@@ -137,6 +139,7 @@ async function consumeSseResponse(params: {
   let terminal = false;
   let failed = false;
   let errorMessage: string | null = null;
+  let assistantText = "";
 
   const dispatchEvent = async (): Promise<boolean> => {
     if (dataLines.length === 0) {
@@ -156,6 +159,36 @@ async function consumeSseResponse(params: {
     const preview =
       trimmedData.length > 1000 ? `${trimmedData.slice(0, 1000)}...` : trimmedData;
     await params.onLog("stdout", `[openclaw:sse] event=${eventType} data=${preview}\n`);
+
+    // Best-effort extraction for OpenAI-compatible chat completions SSE.
+    // We may see either chunk objects (chat.completion.chunk) or a final completion.
+    //
+    // Chunk example:
+    // {"object":"chat.completion.chunk","choices":[{"delta":{"content":"..."}}]}
+    // Final example:
+    // {"object":"chat.completion","choices":[{"message":{"content":"..."}}]}
+    if (parsedPayload) {
+      const rawChoices = parsedPayload.choices;
+      if (Array.isArray(rawChoices) && rawChoices.length > 0) {
+        for (const choice of rawChoices) {
+          if (typeof choice !== "object" || choice === null || Array.isArray(choice)) continue;
+          const c = choice as Record<string, unknown>;
+          const delta = c.delta;
+          if (typeof delta === "object" && delta !== null && !Array.isArray(delta)) {
+            const content = (delta as Record<string, unknown>).content;
+            if (typeof content === "string" && content.length > 0) assistantText += content;
+          }
+          const message = c.message;
+          if (typeof message === "object" && message !== null && !Array.isArray(message)) {
+            const content = (message as Record<string, unknown>).content;
+            if (typeof content === "string" && content.length > 0) {
+              // Prefer explicit final message when present.
+              assistantText = content;
+            }
+          }
+        }
+      }
+    }
 
     const resolution = inferSseTerminal({
       eventType,
@@ -247,6 +280,7 @@ async function consumeSseResponse(params: {
     terminal,
     failed,
     errorMessage,
+    assistantText,
   };
 }
 
@@ -444,18 +478,21 @@ export async function executeSse(ctx: AdapterExecutionContext, url: string): Pro
       };
     }
 
+    const summaryText = consumed.assistantText.trim();
+
     return {
       exitCode: 0,
       signal: null,
       timedOut: false,
       provider: "openclaw",
       model: null,
-      summary: `OpenClaw SSE ${state.method} ${url}`,
+      summary: summaryText.length > 0 ? summaryText : `OpenClaw SSE ${state.method} ${url}`,
       resultJson: {
         eventCount: consumed.eventCount,
         terminal: consumed.terminal,
         lastEventType: consumed.lastEventType,
         lastData: consumed.lastData,
+        assistantText: consumed.assistantText,
         response: consumed.lastPayload ?? consumed.lastData,
       },
     };
