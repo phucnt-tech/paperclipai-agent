@@ -35,6 +35,14 @@ import {
   agentConfigurationDoc as openclawAgentConfigurationDoc,
   models as openclawModels,
 } from "@paperclipai/adapter-openclaw";
+import {
+  execute as openclawGatewayExecute,
+  testEnvironment as openclawGatewayTestEnvironment,
+} from "@paperclipai/adapter-openclaw-gateway/server";
+import {
+  agentConfigurationDoc as openclawGatewayAgentConfigurationDoc,
+  models as openclawGatewayModels,
+} from "@paperclipai/adapter-openclaw-gateway";
 import { listCodexModels } from "./codex-models.js";
 import { listCursorModels } from "./cursor-models.js";
 import {
@@ -92,6 +100,16 @@ const openclawAdapter: ServerAdapterModule = {
   agentConfigurationDoc: openclawAgentConfigurationDoc,
 };
 
+const openclawGatewayAdapter: ServerAdapterModule = {
+  type: "openclaw_gateway",
+  execute: openclawGatewayExecute,
+  testEnvironment: openclawGatewayTestEnvironment,
+  models: openclawGatewayModels,
+  // Gateway auth is configured explicitly (token/header/device key), not local agent JWT.
+  supportsLocalAgentJwt: false,
+  agentConfigurationDoc: openclawGatewayAgentConfigurationDoc,
+};
+
 const openCodeLocalAdapter: ServerAdapterModule = {
   type: "opencode_local",
   execute: openCodeExecute,
@@ -115,7 +133,17 @@ const piLocalAdapter: ServerAdapterModule = {
 };
 
 const adaptersByType = new Map<string, ServerAdapterModule>(
-  [claudeLocalAdapter, codexLocalAdapter, openCodeLocalAdapter, piLocalAdapter, cursorLocalAdapter, openclawAdapter, processAdapter, httpAdapter].map((a) => [a.type, a]),
+  [
+    claudeLocalAdapter,
+    codexLocalAdapter,
+    openCodeLocalAdapter,
+    piLocalAdapter,
+    cursorLocalAdapter,
+    openclawAdapter,
+    openclawGatewayAdapter,
+    processAdapter,
+    httpAdapter,
+  ].map((a) => [a.type, a]),
 );
 
 export function getServerAdapter(type: string): ServerAdapterModule {
