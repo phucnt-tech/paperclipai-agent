@@ -11,8 +11,9 @@ import type { AgentAdapterType, JoinRequest } from "@paperclipai/shared";
 
 type JoinType = "human" | "agent";
 const joinAdapterOptions: AgentAdapterType[] = [
+  "openclaw_gateway",
   "openclaw",
-  ...AGENT_ADAPTER_TYPES.filter((type): type is Exclude<AgentAdapterType, "openclaw"> => type !== "openclaw"),
+  ...AGENT_ADAPTER_TYPES.filter((type): type is Exclude<AgentAdapterType, "openclaw" | "openclaw_gateway"> => type !== "openclaw" && type !== "openclaw_gateway"),
 ];
 
 const adapterLabels: Record<string, string> = {
@@ -20,12 +21,13 @@ const adapterLabels: Record<string, string> = {
   codex_local: "Codex (local)",
   opencode_local: "OpenCode (local)",
   openclaw: "OpenClaw",
+  openclaw_gateway: "OpenClaw Gateway",
   cursor: "Cursor (local)",
   process: "Process",
   http: "HTTP",
 };
 
-const ENABLED_INVITE_ADAPTERS = new Set(["claude_local", "codex_local", "opencode_local", "cursor"]);
+const ENABLED_INVITE_ADAPTERS = new Set(["claude_local", "codex_local", "opencode_local", "cursor", "openclaw_gateway"]);
 
 function dateTime(value: string) {
   return new Date(value).toLocaleString();

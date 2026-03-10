@@ -57,7 +57,8 @@ type AdapterType =
   | "cursor"
   | "process"
   | "http"
-  | "openclaw";
+  | "openclaw"
+  | "openclaw_gateway";
 
 const DEFAULT_TASK_DESCRIPTION = `Setup yourself as the CEO. Use the ceo persona found here: [https://github.com/paperclipai/companies/blob/main/default/ceo/AGENTS.md](https://github.com/paperclipai/companies/blob/main/default/ceo/AGENTS.md)
 
@@ -673,10 +674,10 @@ export function OnboardingWizard() {
                           desc: "Local Pi agent"
                         },
                         {
-                          value: "openclaw" as const,
-                          label: "OpenClaw",
+                          value: "openclaw_gateway" as const,
+                          label: "OpenClaw Gateway",
                           icon: Bot,
-                          desc: "Notify OpenClaw webhook"
+                          desc: "Connect OpenClaw via Gateway (WS)"
                         },
                         {
                           value: "cursor" as const,
@@ -980,7 +981,7 @@ export function OnboardingWizard() {
                     </div>
                   )}
 
-                  {(adapterType === "http" || adapterType === "openclaw") && (
+                  {(adapterType === "http" || adapterType === "openclaw" || adapterType === "openclaw_gateway") && (
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">
                         Webhook URL
