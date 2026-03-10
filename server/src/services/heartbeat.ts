@@ -1388,18 +1388,11 @@ export function heartbeatService(db: Db) {
                 `Run ${finalizedRun.id} đã hoàn tất. Mở tab Runs để xem chi tiết log/transcript.`
               ).slice(0, AUTO_COMMENT_MAX_CHARS);
 
-              // De-dupe/merge: if a comment for this run already exists, update it in-place.
+              // Best-effort de-dupe: skip if a comment for this run already exists.
               const existing = await db
-                .select({ id: issueComments.id, body: issueComments.body })
+                .select({ id: issueComments.id })
                 .from(issueComments)
-                .where(
-                  and(
-                    eq(issueComments.companyId, finalizedRun.companyId),
-                    eq(issueComments.issueId, issueId),
-                    sql`${issueComments.body} like ${`%${marker}%`}`,
-                  ),
-                )
-                .orderBy(desc(issueComments.createdAt))
+                .where(and(eq(issueComments.companyId, finalizedRun.companyId), eq(issueComments.issueId, issueId), sql`${issueComments.body} like ${`%${marker}%`}`))
                 .limit(1);
 
               if (existing.length === 0) {
@@ -1409,14 +1402,6 @@ export function heartbeatService(db: Db) {
                   authorAgentId: agent.id,
                   body,
                 });
-              } else {
-                await db
-                  .update(issueComments)
-                  .set({ body, updatedAt: new Date() })
-                  .where(eq(issueComments.id, existing[0]!.id));
-
-                // Ensure issue recency reflects the update.
-                await db.update(issues).set({ updatedAt: new Date() }).where(eq(issues.id, issueId));
               }
             } catch (err) {
               logger.warn({ err, companyId: finalizedRun.companyId, runId: finalizedRun.id }, "failed to auto-comment run summary");

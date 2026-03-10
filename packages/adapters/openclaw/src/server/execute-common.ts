@@ -360,13 +360,7 @@ export function buildWakeText(payload: WakePayload, paperclipEnv: Record<string,
     `linked_issue_ids=${payload.issueIds.join(",")}`,
   ];
 
-  lines.push(
-    "",
-    "When writing back to Paperclip (comments/status), prefix any issue comment with:",
-    "[run:" + (paperclipEnv.PAPERCLIP_RUN_ID ?? "") + "]",
-    "",
-    "Run your Paperclip heartbeat procedure now.",
-  );
+  lines.push("", "Run your Paperclip heartbeat procedure now.");
   return lines.join("\n");
 }
 
