@@ -4,6 +4,7 @@ import type { AdapterConfigFieldsProps } from "../types";
 import {
   Field,
   DraftInput,
+  DraftTextarea,
   help,
 } from "../../components/agent-config-primitives";
 
@@ -204,10 +205,28 @@ export function OpenClawGatewayConfigFields({
             />
           </Field>
 
+          <Field label="Device private key PEM (optional)">
+            <DraftTextarea
+              value={
+                eff(
+                  "adapterConfig",
+                  "devicePrivateKeyPem",
+                  String(config.devicePrivateKeyPem ?? ""),
+                )
+              }
+              onCommit={(v) => mark("adapterConfig", "devicePrivateKeyPem", v.trim() ? v : undefined)}
+              immediate
+              placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
+              minRows={5}
+            />
+            <div className="mt-1 text-xs text-muted-foreground leading-relaxed">
+              Nếu để trống, adapter sẽ tạo key tạm mỗi run (ephemeral) và có thể bị yêu cầu pairing lại.
+            </div>
+          </Field>
+
           <Field label="Device auth">
             <div className="text-xs text-muted-foreground leading-relaxed">
-              Always enabled for gateway agents. Paperclip persists a device key during onboarding so pairing approvals
-              remain stable across runs.
+              Always enabled for gateway agents. Persist this key to keep pairing stable across runs.
             </div>
           </Field>
         </>
