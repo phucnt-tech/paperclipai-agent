@@ -100,6 +100,9 @@ curl -fsS http://127.0.0.1:3100/api/health
 ## Manual Smoke Checklist
 Use [doc/OPENCLAW_ONBOARDING.md](../../../../doc/OPENCLAW_ONBOARDING.md) as the operator runbook.
 
+For full bootstrap from clone/build to stable gateway runs, use:
+- [OPENCLAW_SELF_SETUP_FROM_SOURCE.md](./OPENCLAW_SELF_SETUP_FROM_SOURCE.md)
+
 ## Regression Gates
 Required before merge:
 ```bash
