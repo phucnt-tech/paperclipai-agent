@@ -34,6 +34,10 @@ By default the adapter sends a signed `device` payload in `connect` params.
 - without `devicePrivateKeyPem`, the adapter generates an ephemeral Ed25519 keypair per run
 - when `autoPairOnFirstConnect` is enabled (default), the adapter handles one initial `pairing required` by calling `device.pair.list` + `device.pair.approve` over shared auth, then retries once.
 
+Practical recommendation:
+- always persist `devicePrivateKeyPem` in agent config (UI field: **Device private key PEM**)
+- otherwise pairing can reappear across runs if the adapter identity changes
+
 ## Session Strategy
 
 The adapter supports the same session routing model as HTTP OpenClaw mode:
@@ -61,6 +65,17 @@ The agent request is built as:
 - `waitTimeoutMs` controls `agent.wait.timeoutMs`
 
 If `agent.wait` returns `timeout`, adapter returns `openclaw_gateway_wait_timeout`.
+
+## Paperclip API key requirement
+
+The wake payload instructs OpenClaw agent flows to call Paperclip APIs (`/api/agents/me`, issues, comments, etc.).
+That requires `PAPERCLIP_API_KEY` at runtime.
+
+Supported ways:
+- preferred: set `PAPERCLIP_API_KEY` in adapter env vars
+- fallback: load from `~/.openclaw/workspace/paperclip-claimed-api-key.json`
+
+If missing, workflows will fail at identity/auth steps even when gateway connection itself succeeds.
 
 ## Log Format
 

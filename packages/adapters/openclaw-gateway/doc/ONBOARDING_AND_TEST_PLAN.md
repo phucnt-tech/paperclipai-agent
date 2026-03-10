@@ -25,7 +25,8 @@ This plan is now **gateway-only**. Paperclip supports OpenClaw through `openclaw
 - `agentDefaultsPayload.headers["x-openclaw-token"]`
 5. Board approves join request.
 6. OpenClaw claims API key and installs/uses Paperclip skill.
-7. First task run may trigger pairing approval once; after approval, pairing persists via stored device key.
+7. Set `PAPERCLIP_API_KEY` in adapter env vars (recommended) or ensure fallback file exists at `~/.openclaw/workspace/paperclip-claimed-api-key.json`.
+8. First task run may trigger pairing approval once; after approval, pairing persists via stored `devicePrivateKeyPem`.
 
 ## Technical Contract (Gateway)
 `agentDefaultsPayload` minimum:
@@ -50,6 +51,7 @@ Recommended fields:
 Security/pairing defaults:
 - `disableDeviceAuth`: default false
 - `devicePrivateKeyPem`: generated during join if missing
+- UI now exposes `devicePrivateKeyPem` directly in OpenClaw Gateway adapter config
 
 ## Codex Automation Workflow
 
@@ -83,6 +85,12 @@ curl -fsS http://127.0.0.1:3100/api/health
 - if first run returns `pairing required`, approve pending device in OpenClaw
 - rerun task and confirm success
 - assert later runs do not require re-pairing for same agent
+- verify agent has persisted `devicePrivateKeyPem` (not ephemeral)
+
+### 3.1) API auth stabilization
+- verify `PAPERCLIP_API_KEY` is present in adapter env vars
+- if not using env var, verify file exists at `~/.openclaw/workspace/paperclip-claimed-api-key.json`
+- confirm workflow can pass `GET /api/agents/me`
 
 ### 4) Functional E2E assertions
 1. Task assigned to OpenClaw is completed and closed.
