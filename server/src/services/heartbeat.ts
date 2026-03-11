@@ -30,9 +30,18 @@ const HEARTBEAT_MAX_CONCURRENT_RUNS_MAX = 10;
 const DEFERRED_WAKE_CONTEXT_KEY = "_paperclipWakeContext";
 const startLocksByAgent = new Map<string, Promise<void>>();
 const REPO_ONLY_CWD_SENTINEL = "/__paperclip_repo_only__";
+const PROJECT_WORKSPACES_ROOT =
+  (typeof process.env.PAPERCLIP_PROJECT_WORKSPACES_ROOT === "string" &&
+  process.env.PAPERCLIP_PROJECT_WORKSPACES_ROOT.trim().length > 0
+    ? process.env.PAPERCLIP_PROJECT_WORKSPACES_ROOT.trim()
+    : "/paperclip/instances/default/workspaces");
 
 function appendExcerpt(prev: string, chunk: string) {
   return appendWithCap(prev, chunk, MAX_EXCERPT_BYTES);
+}
+
+function resolveProjectScopedWorkspaceDir(projectId: string) {
+  return path.join(PROJECT_WORKSPACES_ROOT, `project-${projectId}`);
 }
 
 function normalizeMaxConcurrentRuns(value: unknown) {
@@ -495,6 +504,9 @@ export function heartbeatService(db: Db) {
     const resolvedProjectId = issueProjectId ?? contextProjectId;
     const useProjectWorkspace = opts?.useProjectWorkspace !== false;
     const workspaceProjectId = useProjectWorkspace ? resolvedProjectId : null;
+    const projectScopedFallbackCwd = resolvedProjectId
+      ? resolveProjectScopedWorkspaceDir(resolvedProjectId)
+      : null;
 
     const projectWorkspaceRows = workspaceProjectId
       ? await db
@@ -544,7 +556,7 @@ export function heartbeatService(db: Db) {
         missingProjectCwds.push(projectCwd);
       }
 
-      const fallbackCwd = resolveDefaultAgentWorkspaceDir(agent.id);
+      const fallbackCwd = projectScopedFallbackCwd ?? resolveDefaultAgentWorkspaceDir(agent.id);
       await fs.mkdir(fallbackCwd, { recursive: true });
       const warnings: string[] = [];
       if (missingProjectCwds.length > 0) {
@@ -569,6 +581,22 @@ export function heartbeatService(db: Db) {
         repoRef: projectWorkspaceRows[0]?.repoRef ?? null,
         workspaceHints,
         warnings,
+      };
+    }
+
+    if (projectScopedFallbackCwd) {
+      await fs.mkdir(projectScopedFallbackCwd, { recursive: true });
+      return {
+        cwd: projectScopedFallbackCwd,
+        source: "project_primary" as const,
+        projectId: resolvedProjectId,
+        workspaceId: null,
+        repoUrl: null,
+        repoRef: null,
+        workspaceHints,
+        warnings: [
+          `No configured project workspace directory was found. Using deterministic project workspace "${projectScopedFallbackCwd}" for this run.`,
+        ],
       };
     }
 

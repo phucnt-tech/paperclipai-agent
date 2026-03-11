@@ -151,6 +151,14 @@ docker compose exec -T db psql -U paperclip -d paperclip -c \
 
 ---
 
+### Ghi chú workspace theo project (mặc định mới)
+
+Khi issue có `projectId` nhưng chưa có project workspace cấu hình sẵn, server sẽ tự dùng thư mục deterministic:
+- `/paperclip/instances/default/workspaces/project-<projectId>`
+
+Có thể đổi root bằng env:
+- `PAPERCLIP_PROJECT_WORKSPACES_ROOT=/paperclip/instances/default/workspaces`
+
 ## 9) Re-deploy sau khi cập nhật code
 
 ```bash
