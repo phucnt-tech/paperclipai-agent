@@ -181,7 +181,7 @@ export function NewAgentDialog() {
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[calc(100dvh-0.5rem)] flex flex-col",
+          "p-0 gap-0 overflow-hidden w-[calc(100vw-0.5rem)] h-[calc(100dvh-0.5rem)] max-h-[calc(100dvh-0.5rem)] sm:w-auto sm:h-auto flex flex-col",
           expanded ? "sm:max-w-2xl" : "sm:max-w-lg",
         )}
         onKeyDown={handleKeyDown}
@@ -207,7 +207,7 @@ export function NewAgentDialog() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
           {/* Name */}
           <div className="px-4 pt-4 pb-2 shrink-0">
             <input
