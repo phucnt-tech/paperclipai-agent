@@ -231,7 +231,7 @@ export function NewProjectDialog() {
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh]",
+          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh] flex flex-col",
           expanded ? "sm:max-w-2xl" : "sm:max-w-lg",
         )}
         onKeyDown={handleKeyDown}
@@ -267,7 +267,7 @@ export function NewProjectDialog() {
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[calc(92vh-7.5rem)] sm:max-h-[72vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Name */}
         <div className="px-4 pt-4 pb-2 shrink-0">
           <input
