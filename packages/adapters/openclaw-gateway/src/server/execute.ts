@@ -316,6 +316,12 @@ function buildPaperclipEnvForWake(ctx: AdapterExecutionContext, wakePayload: Wak
     PAPERCLIP_RUN_ID: ctx.runId,
   };
 
+  // Inject a short-lived local agent JWT as PAPERCLIP_API_KEY when available.
+  // This avoids hard dependency on claimed-api-key file for normal run callbacks.
+  if (typeof ctx.authToken === "string" && ctx.authToken.trim().length > 0) {
+    paperclipEnv.PAPERCLIP_API_KEY = ctx.authToken.trim();
+  }
+
   if (paperclipApiUrlOverride) {
     paperclipEnv.PAPERCLIP_API_URL = paperclipApiUrlOverride;
   }
@@ -344,6 +350,7 @@ function buildWakeText(payload: WakePayload, paperclipEnv: Record<string, string
     "PAPERCLIP_APPROVAL_ID",
     "PAPERCLIP_APPROVAL_STATUS",
     "PAPERCLIP_LINKED_ISSUE_IDS",
+    "PAPERCLIP_API_KEY",
   ];
 
   const envLines: string[] = [];

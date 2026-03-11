@@ -105,8 +105,8 @@ const openclawGatewayAdapter: ServerAdapterModule = {
   execute: openclawGatewayExecute,
   testEnvironment: openclawGatewayTestEnvironment,
   models: openclawGatewayModels,
-  // Gateway auth is configured explicitly (token/header/device key), not local agent JWT.
-  supportsLocalAgentJwt: false,
+  // Enable short-lived local agent JWT injection as PAPERCLIP_API_KEY for run callbacks.
+  supportsLocalAgentJwt: true,
   agentConfigurationDoc: openclawGatewayAgentConfigurationDoc,
 };
 
