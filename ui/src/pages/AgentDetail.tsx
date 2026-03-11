@@ -640,6 +640,7 @@ export function AgentDetail() {
           agent={agent}
           agentId={agent.id}
           companyId={resolvedCompanyId ?? undefined}
+          allAgents={allAgents ?? []}
           onDirtyChange={setConfigDirty}
           onSaveActionChange={setSaveConfigAction}
           onCancelActionChange={setCancelConfigAction}
@@ -1032,6 +1033,7 @@ function AgentConfigurePage({
   agent,
   agentId,
   companyId,
+  allAgents,
   onDirtyChange,
   onSaveActionChange,
   onCancelActionChange,
@@ -1041,6 +1043,7 @@ function AgentConfigurePage({
   agent: Agent;
   agentId: string;
   companyId?: string;
+  allAgents: Agent[];
   onDirtyChange: (dirty: boolean) => void;
   onSaveActionChange: (save: (() => void) | null) => void;
   onCancelActionChange: (cancel: (() => void) | null) => void;
@@ -1068,6 +1071,7 @@ function AgentConfigurePage({
     <div className="max-w-3xl space-y-6">
       <ConfigurationTab
         agent={agent}
+        allAgents={allAgents}
         onDirtyChange={onDirtyChange}
         onSaveActionChange={onSaveActionChange}
         onCancelActionChange={onCancelActionChange}
@@ -1138,6 +1142,7 @@ function AgentConfigurePage({
 
 function ConfigurationTab({
   agent,
+  allAgents,
   companyId,
   onDirtyChange,
   onSaveActionChange,
@@ -1146,6 +1151,7 @@ function ConfigurationTab({
   updatePermissions,
 }: {
   agent: Agent;
+  allAgents: Agent[];
   companyId?: string;
   onDirtyChange: (dirty: boolean) => void;
   onSaveActionChange: (save: (() => void) | null) => void;
@@ -1177,8 +1183,42 @@ function ConfigurationTab({
     onSavingChange(updateAgent.isPending);
   }, [onSavingChange, updateAgent.isPending]);
 
+  const reporterOptions = useMemo(
+    () =>
+      allAgents
+        .filter((candidate) => candidate.id !== agent.id && candidate.status !== "terminated")
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [allAgents, agent.id],
+  );
+
   return (
     <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium mb-3">Reporting Line</h3>
+        <div className="border border-border rounded-lg p-4 space-y-2">
+          <label className="text-xs text-muted-foreground" htmlFor="reporter-select">Reports to</label>
+          <select
+            id="reporter-select"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            value={agent.reportsTo ?? ""}
+            onChange={(event) => {
+              const next = event.target.value || null;
+              if (next === (agent.reportsTo ?? null)) return;
+              updateAgent.mutate({ reportsTo: next });
+            }}
+            disabled={updateAgent.isPending}
+          >
+            <option value="">Nobody (top-level)</option>
+            {reporterOptions.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name} ({roleLabels[candidate.role] ?? candidate.role})
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">Đổi cấp quản lý trực tiếp cho agent (hữu ích trên mobile khi không mở được OrgChart).</p>
+        </div>
+      </div>
+
       <AgentConfigForm
         mode="edit"
         agent={agent}
