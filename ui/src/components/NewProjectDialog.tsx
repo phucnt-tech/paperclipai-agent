@@ -43,6 +43,8 @@ const projectStatuses = [
 
 type WorkspaceSetup = "none" | "local" | "repo" | "both";
 const REPO_ONLY_CWD_SENTINEL = "/__paperclip_repo_only__";
+const DEFAULT_PROJECT_WORKSPACES_ROOT = "/paperclip/instances/default/workspaces";
+const PROJECT_ID_TOKEN = "{projectId}";
 
 export function NewProjectDialog() {
   const { newProjectOpen, closeNewProject } = useDialog();
@@ -114,6 +116,12 @@ export function NewProjectDialog() {
     return segments[segments.length - 1] ?? "Local folder";
   };
 
+  const buildDefaultProjectWorkspacePath = () =>
+    `${DEFAULT_PROJECT_WORKSPACES_ROOT}/project-${PROJECT_ID_TOKEN}`;
+
+  const resolveProjectWorkspacePath = (value: string, projectId: string) =>
+    value.replaceAll(PROJECT_ID_TOKEN, projectId).replaceAll("${projectId}", projectId);
+
   const deriveWorkspaceNameFromRepo = (value: string) => {
     try {
       const parsed = new URL(value);
@@ -126,7 +134,11 @@ export function NewProjectDialog() {
   };
 
   const toggleWorkspaceSetup = (next: WorkspaceSetup) => {
-    setWorkspaceSetup((prev) => (prev === next ? "none" : next));
+    const nextState = workspaceSetup === next ? "none" : next;
+    setWorkspaceSetup(nextState);
+    if ((nextState === "local" || nextState === "both") && !workspaceLocalPath.trim()) {
+      setWorkspaceLocalPath(buildDefaultProjectWorkspacePath());
+    }
     setWorkspaceError(null);
   };
 
@@ -158,17 +170,21 @@ export function NewProjectDialog() {
         ...(targetDate ? { targetDate } : {}),
       });
 
+      const resolvedLocalPath = localRequired
+        ? resolveProjectWorkspacePath(localPath, created.id)
+        : localPath;
+
       const workspacePayloads: Array<Record<string, unknown>> = [];
       if (localRequired && repoRequired) {
         workspacePayloads.push({
-          name: deriveWorkspaceNameFromPath(localPath),
-          cwd: localPath,
+          name: deriveWorkspaceNameFromPath(resolvedLocalPath),
+          cwd: resolvedLocalPath,
           repoUrl,
         });
       } else if (localRequired) {
         workspacePayloads.push({
-          name: deriveWorkspaceNameFromPath(localPath),
-          cwd: localPath,
+          name: deriveWorkspaceNameFromPath(resolvedLocalPath),
+          cwd: resolvedLocalPath,
         });
       } else if (repoRequired) {
         workspacePayloads.push({
@@ -343,6 +359,9 @@ export function NewProjectDialog() {
                 />
                 <ChoosePathButton />
               </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Mặc định dùng token <code>{"{projectId}"}</code> và sẽ tự thay bằng project id thật khi tạo.
+              </p>
             </div>
           )}
           {(workspaceSetup === "repo" || workspaceSetup === "both") && (
