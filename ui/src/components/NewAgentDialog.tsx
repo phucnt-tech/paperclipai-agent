@@ -181,7 +181,7 @@ export function NewAgentDialog() {
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh]",
+          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh] flex flex-col",
           expanded ? "sm:max-w-2xl" : "sm:max-w-lg",
         )}
         onKeyDown={handleKeyDown}
@@ -207,7 +207,7 @@ export function NewAgentDialog() {
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[calc(92vh-8.5rem)] sm:max-h-[70vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {/* Name */}
           <div className="px-4 pt-4 pb-2 shrink-0">
             <input
@@ -322,7 +322,7 @@ export function NewAgentDialog() {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 z-10 flex items-center justify-between px-4 py-2.5 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-t border-border bg-background">
           <span className="text-xs text-muted-foreground">
             {isFirstAgent ? "This will be the CEO" : ""}
           </span>
@@ -330,7 +330,7 @@ export function NewAgentDialog() {
         {formError && (
           <div className="px-4 pb-2 text-xs text-destructive">{formError}</div>
         )}
-        <div className="sticky bottom-0 z-10 flex items-center justify-end px-4 pb-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="shrink-0 flex items-center justify-end px-4 pb-3 bg-background">
           <Button
             size="sm"
             disabled={!name.trim() || createAgent.isPending}

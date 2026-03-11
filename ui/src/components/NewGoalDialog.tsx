@@ -116,7 +116,10 @@ export function NewGoalDialog() {
     >
       <DialogContent
         showCloseButton={false}
-        className={cn("p-0 gap-0", expanded ? "sm:max-w-2xl" : "sm:max-w-lg")}
+        className={cn(
+          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh] flex flex-col",
+          expanded ? "sm:max-w-2xl" : "sm:max-w-lg",
+        )}
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
@@ -150,6 +153,7 @@ export function NewGoalDialog() {
           </div>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Title */}
         <div className="px-4 pt-4 pb-2 shrink-0">
           <input
@@ -266,8 +270,10 @@ export function NewGoalDialog() {
           </Popover>
         </div>
 
+        </div>
+
         {/* Footer */}
-        <div className="flex items-center justify-end px-4 py-2.5 border-t border-border">
+        <div className="shrink-0 flex items-center justify-end px-4 py-2.5 border-t border-border bg-background">
           <Button
             size="sm"
             disabled={!title.trim() || createGoal.isPending}
