@@ -162,6 +162,8 @@ docker compose exec -T db psql -U paperclip -d paperclip -c \
 Khi issue có `projectId` nhưng chưa có project workspace cấu hình sẵn, server sẽ tự dùng thư mục deterministic:
 - `/paperclip/instances/default/workspaces/project-<projectId>`
 
+Với wake reason `issue_assigned`, server sẽ tự tạo thư mục này (và tự ghi một project workspace primary) để các run sau ổn định, không còn fallback cảnh báo lặp.
+
 Có thể đổi root bằng env:
 - `PAPERCLIP_PROJECT_WORKSPACES_ROOT=/paperclip/instances/default/workspaces`
 

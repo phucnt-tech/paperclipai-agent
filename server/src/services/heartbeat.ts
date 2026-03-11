@@ -504,6 +504,8 @@ export function heartbeatService(db: Db) {
     const resolvedProjectId = issueProjectId ?? contextProjectId;
     const useProjectWorkspace = opts?.useProjectWorkspace !== false;
     const workspaceProjectId = useProjectWorkspace ? resolvedProjectId : null;
+    const wakeReason = readNonEmptyString(context.wakeReason);
+    const isIssueAssignedWake = wakeReason === "issue_assigned";
     const projectScopedFallbackCwd = resolvedProjectId
       ? resolveProjectScopedWorkspaceDir(resolvedProjectId)
       : null;
@@ -553,6 +555,23 @@ export function heartbeatService(db: Db) {
             warnings: [],
           };
         }
+
+        if (isIssueAssignedWake) {
+          await fs.mkdir(projectCwd, { recursive: true });
+          return {
+            cwd: projectCwd,
+            source: "project_primary" as const,
+            projectId: resolvedProjectId,
+            workspaceId: workspace.id,
+            repoUrl: workspace.repoUrl,
+            repoRef: workspace.repoRef,
+            workspaceHints,
+            warnings: [
+              `Project workspace path "${projectCwd}" was missing and has been created automatically for issue assignment.`,
+            ],
+          };
+        }
+
         missingProjectCwds.push(projectCwd);
       }
 
@@ -586,6 +605,35 @@ export function heartbeatService(db: Db) {
 
     if (projectScopedFallbackCwd) {
       await fs.mkdir(projectScopedFallbackCwd, { recursive: true });
+
+      if (isIssueAssignedWake && resolvedProjectId) {
+        const createdWorkspace = await db
+          .insert(projectWorkspaces)
+          .values({
+            companyId: agent.companyId,
+            projectId: resolvedProjectId,
+            name: `project-${resolvedProjectId.slice(0, 8)}`,
+            cwd: projectScopedFallbackCwd,
+            isPrimary: true,
+          })
+          .returning({ id: projectWorkspaces.id })
+          .then((rows) => rows[0] ?? null)
+          .catch(() => null);
+
+        return {
+          cwd: projectScopedFallbackCwd,
+          source: "project_primary" as const,
+          projectId: resolvedProjectId,
+          workspaceId: createdWorkspace?.id ?? null,
+          repoUrl: null,
+          repoRef: null,
+          workspaceHints,
+          warnings: [
+            `No project workspace was configured. Created deterministic workspace "${projectScopedFallbackCwd}" for issue assignment.`,
+          ],
+        };
+      }
+
       return {
         cwd: projectScopedFallbackCwd,
         source: "project_primary" as const,
