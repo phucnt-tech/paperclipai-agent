@@ -11,6 +11,7 @@ import {
   heartbeatRuns,
   costEvents,
   issues,
+  companies,
   projectWorkspaces,
 } from "@paperclipai/db";
 import { conflict, notFound } from "../errors.js";
@@ -1762,6 +1763,15 @@ export function heartbeatService(db: Db) {
           .select({
             id: issues.id,
             companyId: issues.companyId,
+            projectId: issues.projectId,
+            goalId: issues.goalId,
+            parentId: issues.parentId,
+            title: issues.title,
+            description: issues.description,
+            identifier: issues.identifier,
+            priority: issues.priority,
+            requestDepth: issues.requestDepth,
+            assigneeAgentId: issues.assigneeAgentId,
             executionRunId: issues.executionRunId,
             executionAgentNameKey: issues.executionAgentNameKey,
           })
@@ -1784,6 +1794,82 @@ export function heartbeatService(db: Db) {
             finishedAt: new Date(),
           });
           return { kind: "skipped" as const };
+        }
+
+        const wakeReason = readNonEmptyString(enrichedContextSnapshot.wakeReason) ?? reason;
+        const shouldAutoDelegate =
+          wakeReason === "issue_assigned" &&
+          issue.parentId == null &&
+          issue.assigneeAgentId === agent.id;
+
+        if (shouldAutoDelegate) {
+          const directReports = await tx
+            .select({ id: agents.id, name: agents.name, status: agents.status })
+            .from(agents)
+            .where(
+              and(
+                eq(agents.companyId, agent.companyId),
+                eq(agents.reportsTo, agent.id),
+              ),
+            );
+
+          if (directReports.length > 0) {
+            const existingChildren = await tx
+              .select({ id: issues.id })
+              .from(issues)
+              .where(and(eq(issues.companyId, issue.companyId), eq(issues.parentId, issue.id)))
+              .limit(1)
+              .then((rows) => rows[0] ?? null);
+
+            if (!existingChildren) {
+              for (const report of directReports) {
+                if (report.status === "terminated") continue;
+
+                const [companyRow] = await tx
+                  .update(companies)
+                  .set({ issueCounter: sql`${companies.issueCounter} + 1` })
+                  .where(eq(companies.id, issue.companyId))
+                  .returning({ issueCounter: companies.issueCounter, issuePrefix: companies.issuePrefix });
+
+                const issueNumber = companyRow.issueCounter;
+                const identifier = `${companyRow.issuePrefix}-${issueNumber}`;
+                const delegatedTitle = `${issue.title} — ${report.name}`;
+                const parentRef = issue.identifier ?? issue.id;
+                const delegatedDescription = [
+                  `Auto-delegated from parent issue ${parentRef}.`,
+                  issue.description ? `\n\nParent context:\n${issue.description}` : "",
+                ].join("");
+
+                const [childIssue] = await tx.insert(issues).values({
+                  companyId: issue.companyId,
+                  projectId: issue.projectId,
+                  goalId: issue.goalId,
+                  parentId: issue.id,
+                  title: delegatedTitle,
+                  description: delegatedDescription,
+                  status: "todo",
+                  priority: issue.priority,
+                  assigneeAgentId: report.id,
+                  createdByAgentId: agent.id,
+                  issueNumber,
+                  identifier,
+                  requestDepth: (issue.requestDepth ?? 0) + 1,
+                }).returning({ id: issues.id });
+
+                await tx.insert(agentWakeupRequests).values({
+                  companyId: issue.companyId,
+                  agentId: report.id,
+                  source: "on_demand",
+                  triggerDetail: "auto_delegate",
+                  reason: "issue_assigned",
+                  payload: { issueId: childIssue.id },
+                  status: "queued",
+                  requestedByActorType: "agent",
+                  requestedByActorId: agent.id,
+                });
+              }
+            }
+          }
         }
 
         let activeExecutionRun = issue.executionRunId
