@@ -134,20 +134,22 @@ export function Agents() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs value={tab} onValueChange={(v) => navigate(`/agents/${v}`)}>
-          <PageTabBar
-            items={[
-              { value: "all", label: "All" },
-              { value: "active", label: "Active" },
-              { value: "paused", label: "Paused" },
-              { value: "error", label: "Error" },
-            ]}
-            value={tab}
-            onValueChange={(v) => navigate(`/agents/${v}`)}
-          />
-        </Tabs>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-2 lg:items-center">
+        <div className="min-w-0 sm:flex-1">
+          <Tabs value={tab} onValueChange={(v) => navigate(`/agents/${v}`)}>
+            <PageTabBar
+              items={[
+                { value: "all", label: "All" },
+                { value: "active", label: "Active" },
+                { value: "paused", label: "Paused" },
+                { value: "error", label: "Error" },
+              ]}
+              value={tab}
+              onValueChange={(v) => navigate(`/agents/${v}`)}
+            />
+          </Tabs>
+        </div>
+        <div className="flex items-center gap-2 sm:shrink-0">
           {/* Filters */}
           <div className="relative">
             <button
