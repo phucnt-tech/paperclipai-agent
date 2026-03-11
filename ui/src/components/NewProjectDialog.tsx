@@ -482,7 +482,7 @@ export function NewProjectDialog() {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 z-10 flex items-center justify-between px-4 py-2.5 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-t border-border bg-background">
           {createProject.isError ? (
             <p className="text-xs text-destructive">Failed to create project.</p>
           ) : (
