@@ -49,7 +49,7 @@ PAPERCLIP_ALLOWED_HOSTNAMES=localhost,127.0.0.1
 BETTER_AUTH_TRUSTED_ORIGINS=http://127.0.0.1:3100
 # Optional: host Codex folder mount
 PAPERCLIP_CODEX_HOST_DIR=/root/.codex
-PAPERCLIP_CODEX_CONTAINER_DIR=/root/.codex
+PAPERCLIP_CODEX_CONTAINER_DIR=/paperclip/.codex
 EOF
 ```
 
