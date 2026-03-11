@@ -2,7 +2,7 @@ import type { CreateConfigValues } from "@paperclipai/adapter-utils";
 
 export const defaultCreateValues: CreateConfigValues = {
   adapterType: "claude_local",
-  cwd: "",
+  cwd: "/paperclip/instances/default/workspaces/agent-{agentId}",
   instructionsFilePath: "",
   promptTemplate: "",
   model: "",

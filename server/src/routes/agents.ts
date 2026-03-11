@@ -205,6 +205,28 @@ export function agentRoutes(db: Db) {
     return next;
   }
 
+  function replaceAgentIdTemplateInValue(value: unknown, agentId: string): unknown {
+    if (typeof value === "string") {
+      return value.replaceAll("{agentId}", agentId).replaceAll("${agentId}", agentId);
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => replaceAgentIdTemplateInValue(item, agentId));
+    }
+    if (typeof value === "object" && value !== null) {
+      const record = value as Record<string, unknown>;
+      const next: Record<string, unknown> = {};
+      for (const [key, item] of Object.entries(record)) {
+        next[key] = replaceAgentIdTemplateInValue(item, agentId);
+      }
+      return next;
+    }
+    return value;
+  }
+
+  function applyAgentIdTemplateToAdapterConfig(adapterConfig: Record<string, unknown>, agentId: string) {
+    return replaceAgentIdTemplateInValue(adapterConfig, agentId) as Record<string, unknown>;
+  }
+
   async function assertAdapterConfigConstraints(
     companyId: string,
     adapterType: string | null | undefined,
@@ -635,12 +657,26 @@ export function agentRoutes(db: Db) {
 
     const requiresApproval = company.requireBoardApprovalForNewAgents;
     const status = requiresApproval ? "pending_approval" : "idle";
-    const agent = await svc.create(companyId, {
+    let agent = await svc.create(companyId, {
       ...normalizedHireInput,
       status,
       spentMonthlyCents: 0,
       lastHeartbeatAt: null,
     });
+
+    const resolvedAdapterConfig = applyAgentIdTemplateToAdapterConfig(
+      asRecord(agent.adapterConfig) ?? {},
+      agent.id,
+    );
+    if (JSON.stringify(resolvedAdapterConfig) !== JSON.stringify(agent.adapterConfig ?? {})) {
+      const normalizedResolvedAdapterConfig = await secretsSvc.normalizeAdapterConfigForPersistence(
+        companyId,
+        resolvedAdapterConfig,
+        { strictMode: strictSecretsMode },
+      );
+      const updated = await svc.update(agent.id, { adapterConfig: normalizedResolvedAdapterConfig });
+      if (updated) agent = updated;
+    }
 
     let approval: Awaited<ReturnType<typeof approvalsSvc.getById>> | null = null;
     const actor = getActorInfo(req);
@@ -759,13 +795,27 @@ export function agentRoutes(db: Db) {
       normalizedAdapterConfig,
     );
 
-    const agent = await svc.create(companyId, {
+    let agent = await svc.create(companyId, {
       ...req.body,
       adapterConfig: normalizedAdapterConfig,
       status: "idle",
       spentMonthlyCents: 0,
       lastHeartbeatAt: null,
     });
+
+    const resolvedAdapterConfig = applyAgentIdTemplateToAdapterConfig(
+      asRecord(agent.adapterConfig) ?? {},
+      agent.id,
+    );
+    if (JSON.stringify(resolvedAdapterConfig) !== JSON.stringify(agent.adapterConfig ?? {})) {
+      const normalizedResolvedAdapterConfig = await secretsSvc.normalizeAdapterConfigForPersistence(
+        companyId,
+        resolvedAdapterConfig,
+        { strictMode: strictSecretsMode },
+      );
+      const updated = await svc.update(agent.id, { adapterConfig: normalizedResolvedAdapterConfig });
+      if (updated) agent = updated;
+    }
 
     const actor = getActorInfo(req);
     await logActivity(db, {

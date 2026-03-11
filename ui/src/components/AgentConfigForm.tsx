@@ -557,6 +557,11 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 />
                 <ChoosePathButton />
               </div>
+              {isCreate && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Có thể dùng token <code>{"{agentId}"}</code>; hệ thống sẽ tự thay bằng agent id thật khi tạo.
+                </p>
+              )}
             </Field>
           )}
 
