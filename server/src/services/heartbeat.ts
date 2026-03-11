@@ -1814,16 +1814,73 @@ export function heartbeatService(db: Db) {
             );
 
           if (directReports.length > 0) {
-            const existingChildren = await tx
-              .select({ id: issues.id })
+            const childIssues = await tx
+              .select({ id: issues.id, title: issues.title, assigneeAgentId: issues.assigneeAgentId })
               .from(issues)
-              .where(and(eq(issues.companyId, issue.companyId), eq(issues.parentId, issue.id)))
-              .limit(1)
-              .then((rows) => rows[0] ?? null);
+              .where(and(eq(issues.companyId, issue.companyId), eq(issues.parentId, issue.id)));
 
-            if (!existingChildren) {
+            const hasScope = Boolean(issue.description && issue.description.trim().length >= 120);
+            const hasWorkspaceSignal = issue.projectId
+              ? await tx
+                  .select({ id: projectWorkspaces.id })
+                  .from(projectWorkspaces)
+                  .where(
+                    and(
+                      eq(projectWorkspaces.companyId, issue.companyId),
+                      eq(projectWorkspaces.projectId, issue.projectId),
+                      sql`(
+                        (${projectWorkspaces.cwd} is not null and ${projectWorkspaces.cwd} <> '' and ${projectWorkspaces.cwd} <> ${REPO_ONLY_CWD_SENTINEL})
+                        or (${projectWorkspaces.repoUrl} is not null and ${projectWorkspaces.repoUrl} <> '')
+                      )`,
+                    ),
+                  )
+                  .limit(1)
+                  .then((rows) => rows.length > 0)
+              : false;
+
+            const readyForDelegation = hasScope && hasWorkspaceSignal;
+
+            if (!readyForDelegation) {
+              const existingPrep = childIssues.find((child) => (child.title ?? "").startsWith("[Prep]"));
+              if (!existingPrep) {
+                const [companyRow] = await tx
+                  .update(companies)
+                  .set({ issueCounter: sql`${companies.issueCounter} + 1` })
+                  .where(eq(companies.id, issue.companyId))
+                  .returning({ issueCounter: companies.issueCounter, issuePrefix: companies.issuePrefix });
+
+                const issueNumber = companyRow.issueCounter;
+                const identifier = `${companyRow.issuePrefix}-${issueNumber}`;
+                const prepDescription = [
+                  "Prepare delegation prerequisites for child agents:",
+                  hasScope ? "- Scope: OK" : "- Scope: MISSING (add technical scope + acceptance criteria)",
+                  hasWorkspaceSignal ? "- Workspace: OK" : "- Workspace: MISSING (configure project workspace/repo)",
+                  "",
+                  "After checklist is complete, re-assign parent issue to trigger delegation again.",
+                ].join("\n");
+
+                await tx.insert(issues).values({
+                  companyId: issue.companyId,
+                  projectId: issue.projectId,
+                  goalId: issue.goalId,
+                  parentId: issue.id,
+                  title: `[Prep] ${issue.title}`,
+                  description: prepDescription,
+                  status: "todo",
+                  priority: issue.priority,
+                  assigneeAgentId: agent.id,
+                  createdByAgentId: agent.id,
+                  issueNumber,
+                  identifier,
+                  requestDepth: (issue.requestDepth ?? 0) + 1,
+                });
+              }
+            } else {
               for (const report of directReports) {
                 if (report.status === "terminated") continue;
+
+                const existingForReport = childIssues.find((child) => child.assigneeAgentId === report.id);
+                if (existingForReport) continue;
 
                 const [companyRow] = await tx
                   .update(companies)
