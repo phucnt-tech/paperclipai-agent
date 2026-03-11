@@ -50,6 +50,9 @@ BETTER_AUTH_TRUSTED_ORIGINS=http://127.0.0.1:3100
 # Optional: host Codex folder mount
 PAPERCLIP_CODEX_HOST_DIR=/root/.codex
 PAPERCLIP_CODEX_CONTAINER_DIR=/paperclip/.codex
+# Optional Codex skill injection controls
+# PAPERCLIP_CODEX_INJECT_SKILLS=true
+# PAPERCLIP_CODEX_LOG_SKILL_INJECTION=false
 EOF
 ```
 

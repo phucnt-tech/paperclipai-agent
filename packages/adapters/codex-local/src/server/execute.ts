@@ -76,6 +76,9 @@ async function resolvePaperclipSkillsDir(): Promise<string | null> {
 }
 
 async function ensureCodexSkillsInjected(onLog: AdapterExecutionContext["onLog"]) {
+  if (process.env.PAPERCLIP_CODEX_INJECT_SKILLS === "false") return;
+
+  const verboseInjectionLogs = process.env.PAPERCLIP_CODEX_LOG_SKILL_INJECTION === "true";
   const skillsDir = await resolvePaperclipSkillsDir();
   if (!skillsDir) return;
 
@@ -91,10 +94,12 @@ async function ensureCodexSkillsInjected(onLog: AdapterExecutionContext["onLog"]
 
     try {
       await fs.symlink(source, target);
-      await onLog(
-        "stderr",
-        `[paperclip] Injected Codex skill "${entry.name}" into ${skillsHome}\n`,
-      );
+      if (verboseInjectionLogs) {
+        await onLog(
+          "stderr",
+          `[paperclip] Injected Codex skill "${entry.name}" into ${skillsHome}\n`,
+        );
+      }
     } catch (err) {
       await onLog(
         "stderr",
