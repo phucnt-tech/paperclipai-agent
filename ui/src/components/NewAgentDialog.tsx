@@ -181,7 +181,7 @@ export function NewAgentDialog() {
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh] flex flex-col",
+          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[calc(100dvh-0.5rem)] flex flex-col",
           expanded ? "sm:max-w-2xl" : "sm:max-w-lg",
         )}
         onKeyDown={handleKeyDown}
@@ -322,7 +322,7 @@ export function NewAgentDialog() {
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-t border-border bg-background">
+        <div className="shrink-0 flex items-center justify-between px-4 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] border-t border-border bg-background">
           <span className="text-xs text-muted-foreground">
             {isFirstAgent ? "This will be the CEO" : ""}
           </span>
@@ -330,7 +330,7 @@ export function NewAgentDialog() {
         {formError && (
           <div className="px-4 pb-2 text-xs text-destructive">{formError}</div>
         )}
-        <div className="shrink-0 flex items-center justify-end px-4 pb-3 bg-background">
+        <div className="shrink-0 flex items-center justify-end px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-background">
           <Button
             size="sm"
             disabled={!name.trim() || createAgent.isPending}
