@@ -230,7 +230,10 @@ export function NewProjectDialog() {
     >
       <DialogContent
         showCloseButton={false}
-        className={cn("p-0 gap-0", expanded ? "sm:max-w-2xl" : "sm:max-w-lg")}
+        className={cn(
+          "p-0 gap-0 overflow-hidden w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh]",
+          expanded ? "sm:max-w-2xl" : "sm:max-w-lg",
+        )}
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
@@ -264,6 +267,7 @@ export function NewProjectDialog() {
           </div>
         </div>
 
+        <div className="overflow-y-auto max-h-[calc(92vh-7.5rem)] sm:max-h-[72vh]">
         {/* Name */}
         <div className="px-4 pt-4 pb-2 shrink-0">
           <input
@@ -475,8 +479,10 @@ export function NewProjectDialog() {
           </div>
         </div>
 
+        </div>
+
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
+        <div className="sticky bottom-0 z-10 flex items-center justify-between px-4 py-2.5 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           {createProject.isError ? (
             <p className="text-xs text-destructive">Failed to create project.</p>
           ) : (
