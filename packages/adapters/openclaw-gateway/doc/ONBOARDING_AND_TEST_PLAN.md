@@ -25,8 +25,9 @@ This plan is now **gateway-only**. Paperclip supports OpenClaw through `openclaw
 - `agentDefaultsPayload.headers["x-openclaw-token"]`
 5. Board approves join request.
 6. OpenClaw claims API key and installs/uses Paperclip skill.
-7. Set `PAPERCLIP_API_KEY` in adapter env vars (recommended) or ensure fallback file exists at `~/.openclaw/workspace/paperclip-claimed-api-key.json`.
-8. First task run may trigger pairing approval once; after approval, pairing persists via stored `devicePrivateKeyPem`.
+7. `PAPERCLIP_API_KEY` is injected automatically per run via local agent JWT (default path).
+8. Optional: set explicit `PAPERCLIP_API_KEY` in adapter env vars for custom flows.
+9. First task run may trigger pairing approval once; after approval, pairing persists via stored `devicePrivateKeyPem`.
 
 ## Technical Contract (Gateway)
 `agentDefaultsPayload` minimum:
@@ -88,8 +89,9 @@ curl -fsS http://127.0.0.1:3100/api/health
 - verify agent has persisted `devicePrivateKeyPem` (not ephemeral)
 
 ### 3.1) API auth stabilization
-- verify `PAPERCLIP_API_KEY` is present in adapter env vars
-- if not using env var, verify file exists at `~/.openclaw/workspace/paperclip-claimed-api-key.json`
+- verify adapter `openclaw_gateway` is running with `supportsLocalAgentJwt=true` (default in current branch)
+- confirm wake context includes usable `PAPERCLIP_API_KEY` for run callbacks
+- optional: set explicit `PAPERCLIP_API_KEY` env var only when overriding default behavior
 - confirm workflow can pass `GET /api/agents/me`
 
 ### 4) Functional E2E assertions

@@ -71,11 +71,15 @@ If `agent.wait` returns `timeout`, adapter returns `openclaw_gateway_wait_timeou
 The wake payload instructs OpenClaw agent flows to call Paperclip APIs (`/api/agents/me`, issues, comments, etc.).
 That requires `PAPERCLIP_API_KEY` at runtime.
 
-Supported ways:
-- preferred: set `PAPERCLIP_API_KEY` in adapter env vars
-- fallback: load from `~/.openclaw/workspace/paperclip-claimed-api-key.json`
+Current default behavior:
+- `openclaw_gateway` now injects a short-lived run JWT as `PAPERCLIP_API_KEY` automatically when available (`supportsLocalAgentJwt=true`).
+- This removes hard dependency on a claimed key file for normal callbacks.
 
-If missing, workflows will fail at identity/auth steps even when gateway connection itself succeeds.
+Optional override/fallback:
+- you may still set explicit `PAPERCLIP_API_KEY` in adapter env vars
+- if your custom workflow expects file-based loading, use `~/.openclaw/workspace/paperclip-claimed-api-key.json`
+
+If all sources are missing, workflows will fail at identity/auth steps even when gateway connection itself succeeds.
 
 ## Log Format
 

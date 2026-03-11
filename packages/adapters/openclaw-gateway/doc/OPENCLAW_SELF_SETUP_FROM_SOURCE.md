@@ -110,16 +110,16 @@ Paste toàn bộ PEM vào field `devicePrivateKeyPem` trong Agent config.
 
 ---
 
-## 6) Bắt buộc để API issue flow chạy được
+## 6) API issue flow auth (mặc định mới)
 
-Set env var trong agent:
+Mặc định hiện tại: `openclaw_gateway` tự inject short-lived run JWT làm `PAPERCLIP_API_KEY` cho callback API.
+=> Không còn bắt buộc phải có file claim-key trong workflow chuẩn.
 
-- `PAPERCLIP_API_KEY=<paperclip_claimed_api_key>`
+Tuỳ chọn nâng cao:
+- có thể set explicit `PAPERCLIP_API_KEY` trong env vars nếu muốn override hành vi mặc định
+- fallback file `~/.openclaw/workspace/paperclip-claimed-api-key.json` chỉ dùng cho flow cũ/tuỳ biến
 
-Fallback (không khuyến nghị):
-- tạo file `~/.openclaw/workspace/paperclip-claimed-api-key.json` đúng format/token
-
-Nếu thiếu API key, agent sẽ fail ở bước `/api/agents/me` dù gateway đã connect.
+Nếu tất cả nguồn key đều thiếu, agent sẽ fail ở bước `/api/agents/me` dù gateway đã connect.
 
 ---
 
@@ -167,8 +167,9 @@ docker compose ps
 - xác nhận token đúng gateway
 
 ### B) `No such file ~/.openclaw/workspace/paperclip-claimed-api-key.json`
-- set `PAPERCLIP_API_KEY` trong adapter env vars
-- không phụ thuộc file fallback
+- với bản hiện tại, workflow chuẩn không cần file này
+- kiểm tra server đang chạy commit có `openclaw_gateway` inject JWT (`supportsLocalAgentJwt=true`)
+- nếu chạy flow custom cũ, set explicit `PAPERCLIP_API_KEY` trong adapter env vars
 
 ### C) `wait timeout`
 - tăng `waitTimeoutMs` lên `300000`
@@ -189,7 +190,7 @@ docker compose ps
 - [ ] Gateway reachable + token đúng
 - [ ] Agent dùng `openclaw_gateway`
 - [ ] `devicePrivateKeyPem` đã lưu
-- [ ] `PAPERCLIP_API_KEY` đã set
+- [ ] `PAPERCLIP_API_KEY` có mặt trong run context (auto-injected JWT hoặc env override)
 - [ ] Pairing approve (nếu cần) thành công
 - [ ] Smoke run pass
 
