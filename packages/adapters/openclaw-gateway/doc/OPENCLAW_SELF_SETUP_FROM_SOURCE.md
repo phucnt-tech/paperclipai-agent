@@ -54,6 +54,12 @@ EOF
 
 ## 3) Build + run container
 
+Repo đã có sẵn `docker-compose.yml` ở thư mục root (`paperclipai-agent/docker-compose.yml`) với 2 service:
+- `db` (Postgres)
+- `server` (Paperclip)
+
+Chạy:
+
 ```bash
 docker compose up -d --build
 ```
@@ -145,7 +151,15 @@ docker compose exec -T db psql -U paperclip -d paperclip -c \
 
 ---
 
-## 9) Troubleshooting nhanh
+## 9) Re-deploy sau khi cập nhật code
+
+```bash
+git pull
+docker compose up -d --build
+docker compose ps
+```
+
+## 10) Troubleshooting nhanh
 
 ### A) `pairing required`
 - approve pending device
@@ -167,7 +181,7 @@ docker compose exec -T db psql -U paperclip -d paperclip -c \
 
 ---
 
-## 10) One-shot checklist (copy/paste)
+## 11) One-shot checklist (copy/paste)
 
 - [ ] Clone repo đúng branch
 - [ ] `.env` đã set `BETTER_AUTH_SECRET`
@@ -181,7 +195,7 @@ docker compose exec -T db psql -U paperclip -d paperclip -c \
 
 ---
 
-## 11) Security notes
+## 12) Security notes
 
 - Không commit secrets/token/key PEM vào git.
 - Chỉ lưu token trong env/config protected.
