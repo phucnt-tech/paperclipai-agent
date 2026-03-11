@@ -40,6 +40,8 @@ services:
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
     volumes:
       - paperclip-data:/paperclip
+      # Optional host Codex home mount (configurable). Default: /root/.codex on host -> /root/.codex in container.
+      - "${PAPERCLIP_CODEX_HOST_DIR:-/root/.codex}:${PAPERCLIP_CODEX_CONTAINER_DIR:-/root/.codex}"
     depends_on:
       db:
         condition: service_healthy
