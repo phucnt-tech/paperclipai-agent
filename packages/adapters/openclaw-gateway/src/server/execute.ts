@@ -862,7 +862,13 @@ function extractResultText(value: unknown): string | null {
 }
 
 export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
-  const urlValue = asString(ctx.config.url, "").trim();
+  const parsedConfig = parseObject(ctx.config);
+  const adapterMode = nonEmpty(parsedConfig.mode);
+  const embeddedMode = adapterMode === "embedded" || parseBoolean(parsedConfig.embedded, false);
+  const embeddedDefaultUrl =
+    nonEmpty(process.env.PAPERCLIP_OPENCLAW_INTERNAL_WS_URL) ?? "ws://paperclip-openclaw-ceo:18789";
+
+  const urlValue = asString(parsedConfig.url, "").trim() || (embeddedMode ? embeddedDefaultUrl : "");
   if (!urlValue) {
     return {
       exitCode: 1,
@@ -902,13 +908,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const payloadTemplate = parseObject(ctx.config.payloadTemplate);
   const transportHint = nonEmpty(ctx.config.streamTransport) ?? nonEmpty(ctx.config.transport);
 
-  const headers = toStringRecord(ctx.config.headers);
-  const authToken = resolveAuthToken(parseObject(ctx.config), headers);
-  const password = nonEmpty(ctx.config.password);
-  const deviceToken = nonEmpty(ctx.config.deviceToken);
+  const headers = toStringRecord(parsedConfig.headers);
+  const authToken = resolveAuthToken(parsedConfig, headers);
+  const embeddedToken = embeddedMode ? nonEmpty(process.env.PAPERCLIP_OPENCLAW_INTERNAL_TOKEN) : null;
+  const effectiveAuthToken = authToken ?? embeddedToken;
+  const password = nonEmpty(parsedConfig.password);
+  const deviceToken = nonEmpty(parsedConfig.deviceToken);
 
-  if (authToken && !headerMapHasIgnoreCase(headers, "authorization")) {
-    headers.authorization = toAuthorizationHeaderValue(authToken);
+  if (effectiveAuthToken && !headerMapHasIgnoreCase(headers, "authorization")) {
+    headers.authorization = toAuthorizationHeaderValue(effectiveAuthToken);
   }
 
   const clientId = nonEmpty(ctx.config.clientId) ?? DEFAULT_CLIENT_ID;
@@ -1077,9 +1085,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           role,
           scopes,
           auth:
-            authToken || password || deviceToken
+            effectiveAuthToken || password || deviceToken
               ? {
-                  ...(authToken ? { token: authToken } : {}),
+                  ...(effectiveAuthToken ? { token: effectiveAuthToken } : {}),
                   ...(deviceToken ? { deviceToken } : {}),
                   ...(password ? { password } : {}),
                 }
@@ -1094,7 +1102,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
             role,
             scopes,
             signedAtMs,
-            token: authToken,
+            token: effectiveAuthToken,
             nonce,
             platform: process.platform,
             deviceFamily,
@@ -1232,7 +1240,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         !disableDeviceAuth &&
         autoPairOnFirstConnect &&
         !autoPairAttempted &&
-        (authToken || password)
+        (effectiveAuthToken || password)
       ) {
         autoPairAttempted = true;
         const pairResult = await autoApproveDevicePairing({
@@ -1244,7 +1252,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           clientVersion,
           role,
           scopes,
-          authToken,
+          authToken: effectiveAuthToken,
           password,
           requestId: extractPairingRequestId(err),
           deviceId: deviceIdentity?.deviceId ?? null,

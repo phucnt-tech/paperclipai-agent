@@ -14,6 +14,16 @@ This adapter always uses WebSocket gateway transport.
 4. wait for completion via `req agent.wait`
 5. stream `event agent` frames into Paperclip logs/transcript parsing
 
+### Embedded mode defaults
+
+When `adapterConfig.mode = "embedded"` and `url` is omitted, adapter uses:
+- `PAPERCLIP_OPENCLAW_INTERNAL_WS_URL` (default: `ws://paperclip-openclaw-ceo:18789`)
+
+When auth token is omitted in config/headers, adapter falls back to:
+- `PAPERCLIP_OPENCLAW_INTERNAL_TOKEN`
+
+This is intended for in-cluster CEO/native OpenClaw deployments.
+
 ## Auth Modes
 
 Gateway credentials can be provided in any of these ways:
