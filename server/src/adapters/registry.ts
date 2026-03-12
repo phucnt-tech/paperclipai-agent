@@ -119,6 +119,10 @@ const openclawNativeAdapter: ServerAdapterModule = {
       config: {
         ...(ctx.config ?? {}),
         mode: "embedded",
+        disableDeviceAuth:
+          typeof (ctx.config as Record<string, unknown> | null | undefined)?.disableDeviceAuth === "boolean"
+            ? (ctx.config as Record<string, unknown>).disableDeviceAuth
+            : true,
       },
     }),
   testEnvironment: async (ctx) =>
