@@ -1,4 +1,5 @@
 import type { ServerAdapterModule } from "./types.js";
+import { readFile } from "node:fs/promises";
 import {
   execute as claudeExecute,
   testEnvironment as claudeTestEnvironment,
@@ -113,18 +114,48 @@ const openclawGatewayAdapter: ServerAdapterModule = {
 
 const openclawNativeAdapter: ServerAdapterModule = {
   type: "openclaw_native",
-  execute: async (ctx) =>
-    openclawGatewayExecute({
+  execute: async (ctx) => {
+    const baseConfig = (ctx.config ?? {}) as Record<string, unknown>;
+    const mergedConfig: Record<string, unknown> = {
+      ...baseConfig,
+      mode: "embedded",
+      disableDeviceAuth:
+        typeof baseConfig.disableDeviceAuth === "boolean"
+          ? baseConfig.disableDeviceAuth
+          : false,
+      autoPairOnFirstConnect:
+        typeof baseConfig.autoPairOnFirstConnect === "boolean"
+          ? baseConfig.autoPairOnFirstConnect
+          : true,
+    };
+
+    const envDevicePem =
+      typeof process.env.PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PEM === "string"
+        ? process.env.PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PEM.trim()
+        : "";
+    const envDevicePemPath =
+      typeof process.env.PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH === "string"
+        ? process.env.PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH.trim()
+        : "";
+
+    if (typeof mergedConfig.devicePrivateKeyPem !== "string" || !mergedConfig.devicePrivateKeyPem.trim()) {
+      if (envDevicePem) {
+        mergedConfig.devicePrivateKeyPem = envDevicePem;
+      } else if (envDevicePemPath) {
+        try {
+          const filePem = await readFile(envDevicePemPath, "utf8");
+          if (filePem.trim()) mergedConfig.devicePrivateKeyPem = filePem;
+        } catch {
+          // best effort only
+        }
+      }
+    }
+
+    return openclawGatewayExecute({
       ...ctx,
-      config: {
-        ...(ctx.config ?? {}),
-        mode: "embedded",
-        disableDeviceAuth:
-          typeof (ctx.config as Record<string, unknown> | null | undefined)?.disableDeviceAuth === "boolean"
-            ? (ctx.config as Record<string, unknown>).disableDeviceAuth
-            : true,
-      },
-    }),
+      config: mergedConfig,
+    });
+  },
   testEnvironment: async (ctx) =>
     openclawGatewayTestEnvironment({
       ...ctx,

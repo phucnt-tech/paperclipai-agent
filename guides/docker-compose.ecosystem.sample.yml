@@ -36,14 +36,17 @@ services:
       # Embedded OpenClaw defaults
       PAPERCLIP_OPENCLAW_INTERNAL_WS_URL: "${PAPERCLIP_OPENCLAW_INTERNAL_WS_URL:-ws://paperclip-openclaw-ceo:18789}"
       PAPERCLIP_OPENCLAW_INTERNAL_TOKEN: "${PAPERCLIP_OPENCLAW_INTERNAL_TOKEN:-change_me_internal_token}"
+      PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH: "${PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH:-/paperclip/openclaw-native-device.pem}"
     volumes:
       - paperclip-data:/paperclip
 
   paperclip-openclaw-ceo:
-    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1505}
+    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1638}
     restart: unless-stopped
     environment:
       OPENCLAW_GATEWAY_TOKEN: "${PAPERCLIP_OPENCLAW_INTERNAL_TOKEN:-change_me_internal_token}"
+      PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH: "${PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH:-/paperclip/openclaw-native-device.pem}"
+      OPENCLAW_AUTO_APPROVE_DEVICE_PAIRING: "${OPENCLAW_AUTO_APPROVE_DEVICE_PAIRING:-true}"
     # Image already starts OpenClaw gateway via built-in entrypoint script.
     volumes:
       - openclaw-home:/root/.openclaw

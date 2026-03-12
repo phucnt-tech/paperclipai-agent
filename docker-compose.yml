@@ -44,6 +44,7 @@ services:
       PAPERCLIP_AGENT_JWT_SECRET: "${PAPERCLIP_AGENT_JWT_SECRET:-}"
       PAPERCLIP_OPENCLAW_INTERNAL_WS_URL: "${PAPERCLIP_OPENCLAW_INTERNAL_WS_URL:-ws://paperclip-openclaw-ceo:18789}"
       PAPERCLIP_OPENCLAW_INTERNAL_TOKEN: "${PAPERCLIP_OPENCLAW_INTERNAL_TOKEN:-}"
+      PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH: "${PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH:-/paperclip/openclaw-native-device.pem}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
     volumes:
       - paperclip-data:/paperclip
@@ -56,11 +57,13 @@ services:
         condition: service_started
 
   paperclip-openclaw-ceo:
-    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1505}
+    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1638}
     restart: unless-stopped
     environment:
       OPENCLAW_GATEWAY_TOKEN: "${PAPERCLIP_OPENCLAW_INTERNAL_TOKEN:-change_me_internal_token}"
       OPENCLAW_GATEWAY_BIND: "0.0.0.0:18789"
+      PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH: "${PAPERCLIP_OPENCLAW_NATIVE_DEVICE_PRIVATE_KEY_PATH:-/paperclip/openclaw-native-device.pem}"
+      OPENCLAW_AUTO_APPROVE_DEVICE_PAIRING: "${OPENCLAW_AUTO_APPROVE_DEVICE_PAIRING:-true}"
     volumes:
       - openclaw-home:/root/.openclaw
       - paperclip-data:/paperclip

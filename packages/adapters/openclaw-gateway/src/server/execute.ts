@@ -865,10 +865,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const parsedConfig = parseObject(ctx.config);
   const adapterMode = nonEmpty(parsedConfig.mode);
   const embeddedMode = adapterMode === "embedded" || parseBoolean(parsedConfig.embedded, false);
-  const disableDeviceAuthInEmbedded =
-    embeddedMode &&
-    typeof parsedConfig.disableDeviceAuth !== "boolean" &&
-    typeof parsedConfig.devicePrivateKeyPem !== "string";
   const embeddedDefaultUrl =
     nonEmpty(process.env.PAPERCLIP_OPENCLAW_INTERNAL_WS_URL) ?? "ws://paperclip-openclaw-ceo:18789";
 
@@ -929,7 +925,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const role = nonEmpty(ctx.config.role) ?? DEFAULT_ROLE;
   const scopes = normalizeScopes(ctx.config.scopes);
   const deviceFamily = nonEmpty(ctx.config.deviceFamily);
-  const disableDeviceAuth = disableDeviceAuthInEmbedded || parseBoolean(parsedConfig.disableDeviceAuth, false);
+  const disableDeviceAuth = parseBoolean(parsedConfig.disableDeviceAuth, false);
 
   const wakePayload = buildWakePayload(ctx);
   const paperclipEnv = buildPaperclipEnvForWake(ctx, wakePayload);
