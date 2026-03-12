@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Start gateway daemon (idempotent)
-openclaw gateway start || true
+PORT="${OPENCLAW_GATEWAY_PORT:-18789}"
+TOKEN="${OPENCLAW_GATEWAY_TOKEN:-}"
 
-# Keep container alive and print status periodically if enabled
-if [[ "${OPENCLAW_GATEWAY_STATUS_LOOP:-true}" == "true" ]]; then
-  while true; do
-    openclaw gateway status || true
-    sleep "${OPENCLAW_GATEWAY_STATUS_INTERVAL_SEC:-30}"
-  done
-else
-  tail -f /dev/null
+if [[ -z "$TOKEN" ]]; then
+  echo "[paperclip-openclaw-ceo] OPENCLAW_GATEWAY_TOKEN is required"
+  exit 1
 fi
+
+# Run gateway in foreground for container runtime.
+exec openclaw gateway run \
+  --allow-unconfigured \
+  --auth token \
+  --token "$TOKEN" \
+  --bind lan \
+  --port "$PORT" \
+  --compact

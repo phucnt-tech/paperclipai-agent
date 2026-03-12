@@ -52,9 +52,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      paperclip-openclaw-ceo:
+        condition: service_started
+
+  paperclip-openclaw-ceo:
+    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1455}
+    restart: unless-stopped
+    environment:
+      OPENCLAW_GATEWAY_TOKEN: "${PAPERCLIP_OPENCLAW_INTERNAL_TOKEN:-change_me_internal_token}"
+      OPENCLAW_GATEWAY_BIND: "0.0.0.0:18789"
+    volumes:
+      - openclaw-home:/root/.openclaw
+      - paperclip-data:/paperclip
 
 volumes:
   pgdata:
     external: true
     name: da8ffeebc55fa983116098ad9237cc520766fc3fe542056e56ec3095e49bfaae
   paperclip-data:
+  openclaw-home:
