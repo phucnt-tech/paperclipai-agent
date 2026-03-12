@@ -33,6 +33,7 @@ Status: draft for review before implementation
 - Keep enough cross-agent context without leaking unnecessary data
 - Make history auditable/replayable
 - Keep sync simple via Git
+- Enforce **single-writer** model for context repository
 
 ### Storage strategy
 - Use a dedicated repo for Paperclip context (e.g. `paperclip-context`)
@@ -44,7 +45,9 @@ Status: draft for review before implementation
 
 ### Sync mechanism
 - CEO native agent performs periodic `commit + push` (e.g. every 15-30m or on run finalization batches)
-- Remote agents do scoped `pull` before execution and optional scoped writeback after execution
+- Remote agents are **pull-only** for context (scoped fetch before execution)
+- Remote agents do **not** push context directly to repo; they report events/results to Paperclip
+- Paperclip/CEO normalizes those events into append logs, then pushes via the single-writer flow
 - Sync is scope-bound (company/project/issue), not full-repo dump by default
 
 ### Scope partitioning
@@ -123,3 +126,4 @@ Phase 3
 - Which events are mandatory for Telegram vs optional?
 - Should n8n adapter remain one-shot for MVP or include callback channel immediately?
 - Is escalation timeout global or per project?
+- Do we need a dedicated compaction cadence for single-writer memory repo (daily vs hourly)?
