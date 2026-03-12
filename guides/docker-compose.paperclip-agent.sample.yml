@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PAPERCLIP_DB_NAME:-paperclip}
+      POSTGRES_USER: ${PAPERCLIP_DB_USER:-paperclip}
+      POSTGRES_PASSWORD: ${PAPERCLIP_DB_PASSWORD:-paperclip}
+    volumes:
+      - paperclip-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PAPERCLIP_DB_USER:-paperclip} -d ${PAPERCLIP_DB_NAME:-paperclip}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  server:
+    image: otsphucnt/paperclip-agent:20260312-1102
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3100:3100"
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      SERVE_UI: "true"
+      DATABASE_URL: postgresql://${PAPERCLIP_DB_USER:-paperclip}:${PAPERCLIP_DB_PASSWORD:-paperclip}@db:5432/${PAPERCLIP_DB_NAME:-paperclip}
+
+      # Required app settings
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change_me}
+      PAPERCLIP_PUBLIC_URL: ${PAPERCLIP_PUBLIC_URL:-http://localhost:3100}
+      PAPERCLIP_ALLOWED_HOSTNAMES: ${PAPERCLIP_ALLOWED_HOSTNAMES:-localhost,127.0.0.1}
+      BETTER_AUTH_TRUSTED_ORIGINS: ${BETTER_AUTH_TRUSTED_ORIGINS:-http://localhost:3100}
+
+      # Optional OpenClaw/Paperclip integrations
+      PAPERCLIP_AGENT_JWT_SECRET: ${PAPERCLIP_AGENT_JWT_SECRET:-}
+      PAPERCLIP_TELEGRAM_LOG_ENABLED: ${PAPERCLIP_TELEGRAM_LOG_ENABLED:-false}
+      PAPERCLIP_TELEGRAM_CHAT_ID: ${PAPERCLIP_TELEGRAM_CHAT_ID:-}
+      PAPERCLIP_TELEGRAM_BOT_TOKEN: ${PAPERCLIP_TELEGRAM_BOT_TOKEN:-}
+
+      # Optional Codex mount settings
+      PAPERCLIP_CODEX_INJECT_SKILLS: ${PAPERCLIP_CODEX_INJECT_SKILLS:-true}
+      PAPERCLIP_CODEX_LOG_SKILL_INJECTION: ${PAPERCLIP_CODEX_LOG_SKILL_INJECTION:-false}
+
+    volumes:
+      - paperclip-data:/paperclip
+      - "${PAPERCLIP_CODEX_HOST_DIR:-/root/.codex}:${PAPERCLIP_CODEX_CONTAINER_DIR:-/paperclip/.codex}"
+
+volumes:
+  paperclip-db:
+  paperclip-data:
