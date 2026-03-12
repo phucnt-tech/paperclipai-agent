@@ -11,6 +11,7 @@ import {
   heartbeatRuns,
   costEvents,
   issues,
+  issueComments,
   companies,
   projectWorkspaces,
 } from "@paperclipai/db";
@@ -1657,6 +1658,10 @@ export function heartbeatService(db: Db) {
         .select({
           id: issues.id,
           companyId: issues.companyId,
+          parentId: issues.parentId,
+          title: issues.title,
+          identifier: issues.identifier,
+          assigneeAgentId: issues.assigneeAgentId,
         })
         .from(issues)
         .where(and(eq(issues.companyId, run.companyId), eq(issues.executionRunId, run.id)))
@@ -1673,6 +1678,90 @@ export function heartbeatService(db: Db) {
           updatedAt: new Date(),
         })
         .where(eq(issues.id, issue.id));
+
+      if (issue.parentId) {
+        const parentIssue = await tx
+          .select({ id: issues.id, assigneeAgentId: issues.assigneeAgentId })
+          .from(issues)
+          .where(and(eq(issues.companyId, issue.companyId), eq(issues.id, issue.parentId)))
+          .then((rows) => rows[0] ?? null);
+
+        const marker = `[child-run:${run.id}]`;
+        const childRef = issue.identifier ?? issue.id;
+        const runStatus = run.status;
+        const runResultJson = parseObject(run.resultJson);
+        const runSummary =
+          readNonEmptyString(runResultJson.summary) ??
+          readNonEmptyString(run.stdoutExcerpt)?.slice(0, 280) ??
+          null;
+        const runError =
+          readNonEmptyString(run.error) ??
+          readNonEmptyString(run.stderrExcerpt)?.slice(0, 280) ??
+          null;
+
+        const existingReportComment = await tx
+          .select({ id: issueComments.id })
+          .from(issueComments)
+          .where(
+            and(
+              eq(issueComments.companyId, issue.companyId),
+              eq(issueComments.issueId, issue.parentId),
+              sql`${issueComments.body} like ${`%${marker}%`}`,
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
+
+        if (!existingReportComment) {
+          const lines = [
+            `${marker} Child issue update`,
+            "",
+            `- Child: ${childRef} \"${issue.title}\"`,
+            `- Status: ${runStatus}`,
+            runSummary ? `- Summary: ${runSummary}` : "",
+            runError ? `- Error: ${runError}` : "",
+          ].filter(Boolean);
+
+          await tx.insert(issueComments).values({
+            companyId: issue.companyId,
+            issueId: issue.parentId,
+            authorAgentId: issue.assigneeAgentId ?? null,
+            body: lines.join("\n"),
+          });
+        }
+
+        if (parentIssue?.assigneeAgentId) {
+          const parentAgent = await tx
+            .select({ id: agents.id, status: agents.status })
+            .from(agents)
+            .where(eq(agents.id, parentIssue.assigneeAgentId))
+            .then((rows) => rows[0] ?? null);
+
+          if (
+            parentAgent &&
+            parentAgent.status !== "paused" &&
+            parentAgent.status !== "terminated" &&
+            parentAgent.status !== "pending_approval"
+          ) {
+            await tx.insert(agentWakeupRequests).values({
+              companyId: issue.companyId,
+              agentId: parentIssue.assigneeAgentId,
+              source: "automation",
+              triggerDetail: "callback",
+              reason: "issue_child_updated",
+              payload: {
+                issueId: issue.parentId,
+                childIssueId: issue.id,
+                childRunId: run.id,
+                childStatus: runStatus,
+              },
+              status: "queued",
+              requestedByActorType: "agent",
+              requestedByActorId: issue.assigneeAgentId ?? null,
+            });
+          }
+        }
+      }
 
       while (true) {
         const deferred = await tx
