@@ -12,10 +12,11 @@ import type { AgentAdapterType, JoinRequest } from "@paperclipai/shared";
 type JoinType = "human" | "agent";
 const joinAdapterOptions: AgentAdapterType[] = [
   "openclaw_gateway",
+  "openclaw_edge",
   "openclaw",
   ...AGENT_ADAPTER_TYPES.filter(
-    (type): type is Exclude<AgentAdapterType, "openclaw" | "openclaw_gateway" | "openclaw_native"> =>
-      type !== "openclaw" && type !== "openclaw_gateway" && type !== "openclaw_native",
+    (type): type is Exclude<AgentAdapterType, "openclaw" | "openclaw_gateway" | "openclaw_edge" | "openclaw_native"> =>
+      type !== "openclaw" && type !== "openclaw_gateway" && type !== "openclaw_edge" && type !== "openclaw_native",
   ),
 ];
 
@@ -25,6 +26,7 @@ const adapterLabels: Record<string, string> = {
   opencode_local: "OpenCode (local)",
   openclaw: "OpenClaw",
   openclaw_gateway: "OpenClaw Gateway",
+  openclaw_edge: "OpenClaw Edge",
   openclaw_native: "OpenClaw Native",
   n8n: "n8n Workflow",
   cursor: "Cursor (local)",
@@ -32,7 +34,7 @@ const adapterLabels: Record<string, string> = {
   http: "HTTP",
 };
 
-const ENABLED_INVITE_ADAPTERS = new Set(["claude_local", "codex_local", "opencode_local", "cursor", "openclaw_gateway"]);
+const ENABLED_INVITE_ADAPTERS = new Set(["claude_local", "codex_local", "opencode_local", "cursor", "openclaw_gateway", "openclaw_edge"]);
 
 function dateTime(value: string) {
   return new Date(value).toLocaleString();

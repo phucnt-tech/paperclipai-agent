@@ -31,6 +31,7 @@ export const AGENT_ADAPTER_TYPES = [
   "cursor",
   "openclaw",
   "openclaw_gateway",
+  "openclaw_edge",
   "openclaw_native",
   "n8n",
 ] as const;

@@ -112,6 +112,16 @@ const openclawGatewayAdapter: ServerAdapterModule = {
   agentConfigurationDoc: openclawGatewayAgentConfigurationDoc,
 };
 
+const openclawEdgeAdapter: ServerAdapterModule = {
+  type: "openclaw_edge",
+  execute: openclawGatewayExecute,
+  testEnvironment: openclawGatewayTestEnvironment,
+  models: openclawGatewayModels,
+  supportsLocalAgentJwt: true,
+  agentConfigurationDoc:
+    "OpenClaw Edge (remote): connects to a remote edge gateway via websocket URL/token in adapter config.",
+};
+
 const openclawNativeAdapter: ServerAdapterModule = {
   type: "openclaw_native",
   execute: async (ctx) => {
@@ -214,6 +224,7 @@ const adaptersByType = new Map<string, ServerAdapterModule>(
     cursorLocalAdapter,
     openclawAdapter,
     openclawGatewayAdapter,
+    openclawEdgeAdapter,
     openclawNativeAdapter,
     processAdapter,
     httpAdapter,

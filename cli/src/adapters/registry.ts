@@ -45,6 +45,11 @@ const openclawGatewayCLIAdapter: CLIAdapterModule = {
   formatStdoutEvent: printOpenClawGatewayStreamEvent,
 };
 
+const openclawEdgeCLIAdapter: CLIAdapterModule = {
+  type: "openclaw_edge",
+  formatStdoutEvent: printOpenClawGatewayStreamEvent,
+};
+
 const openclawNativeCLIAdapter: CLIAdapterModule = {
   type: "openclaw_native",
   formatStdoutEvent: printOpenClawGatewayStreamEvent,
@@ -59,6 +64,7 @@ const adaptersByType = new Map<string, CLIAdapterModule>(
     cursorLocalCLIAdapter,
     openclawCLIAdapter,
     openclawGatewayCLIAdapter,
+    openclawEdgeCLIAdapter,
     openclawNativeCLIAdapter,
     processCLIAdapter,
     httpCLIAdapter,

@@ -6,6 +6,7 @@ import { openCodeLocalUIAdapter } from "./opencode-local";
 import { piLocalUIAdapter } from "./pi-local";
 import { openClawUIAdapter } from "./openclaw";
 import { openClawGatewayUIAdapter } from "./openclaw-gateway";
+import { openClawEdgeUIAdapter } from "./openclaw-edge";
 import { openClawNativeUIAdapter } from "./openclaw-native";
 import { processUIAdapter } from "./process";
 import { httpUIAdapter } from "./http";
@@ -20,6 +21,7 @@ const adaptersByType = new Map<string, UIAdapterModule>(
     cursorLocalUIAdapter,
     openClawUIAdapter,
     openClawGatewayUIAdapter,
+    openClawEdgeUIAdapter,
     openClawNativeUIAdapter,
     processUIAdapter,
     httpUIAdapter,
