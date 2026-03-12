@@ -55,6 +55,7 @@ export const adapterLabels: Record<string, string> = {
   opencode_local: "OpenCode (local)",
   openclaw: "OpenClaw",
   openclaw_gateway: "OpenClaw Gateway",
+  openclaw_native: "OpenClaw Native",
   n8n: "n8n Workflow",
   cursor: "Cursor (local)",
   process: "Process",

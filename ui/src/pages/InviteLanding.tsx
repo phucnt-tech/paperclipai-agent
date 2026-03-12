@@ -13,7 +13,10 @@ type JoinType = "human" | "agent";
 const joinAdapterOptions: AgentAdapterType[] = [
   "openclaw_gateway",
   "openclaw",
-  ...AGENT_ADAPTER_TYPES.filter((type): type is Exclude<AgentAdapterType, "openclaw" | "openclaw_gateway"> => type !== "openclaw" && type !== "openclaw_gateway"),
+  ...AGENT_ADAPTER_TYPES.filter(
+    (type): type is Exclude<AgentAdapterType, "openclaw" | "openclaw_gateway" | "openclaw_native"> =>
+      type !== "openclaw" && type !== "openclaw_gateway" && type !== "openclaw_native",
+  ),
 ];
 
 const adapterLabels: Record<string, string> = {
@@ -22,6 +25,7 @@ const adapterLabels: Record<string, string> = {
   opencode_local: "OpenCode (local)",
   openclaw: "OpenClaw",
   openclaw_gateway: "OpenClaw Gateway",
+  openclaw_native: "OpenClaw Native",
   n8n: "n8n Workflow",
   cursor: "Cursor (local)",
   process: "Process",

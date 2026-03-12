@@ -111,6 +111,34 @@ const openclawGatewayAdapter: ServerAdapterModule = {
   agentConfigurationDoc: openclawGatewayAgentConfigurationDoc,
 };
 
+const openclawNativeAdapter: ServerAdapterModule = {
+  type: "openclaw_native",
+  execute: async (ctx) =>
+    openclawGatewayExecute({
+      ...ctx,
+      config: {
+        ...(ctx.config ?? {}),
+        mode: "embedded",
+      },
+    }),
+  testEnvironment: async (ctx) =>
+    openclawGatewayTestEnvironment({
+      ...ctx,
+      config: {
+        ...(ctx.config ?? {}),
+        mode: "embedded",
+        url:
+          (typeof process.env.PAPERCLIP_OPENCLAW_INTERNAL_WS_URL === "string" &&
+            process.env.PAPERCLIP_OPENCLAW_INTERNAL_WS_URL.trim()) ||
+          "ws://paperclip-openclaw-ceo:18789",
+      },
+    }),
+  models: openclawGatewayModels,
+  supportsLocalAgentJwt: true,
+  agentConfigurationDoc:
+    "OpenClaw Native (embedded): uses in-cluster gateway defaults via PAPERCLIP_OPENCLAW_INTERNAL_WS_URL and PAPERCLIP_OPENCLAW_INTERNAL_TOKEN.",
+};
+
 const openCodeLocalAdapter: ServerAdapterModule = {
   type: "opencode_local",
   execute: openCodeExecute,
@@ -142,6 +170,7 @@ const adaptersByType = new Map<string, ServerAdapterModule>(
     cursorLocalAdapter,
     openclawAdapter,
     openclawGatewayAdapter,
+    openclawNativeAdapter,
     processAdapter,
     httpAdapter,
     n8nAdapter,
