@@ -10,6 +10,9 @@ if [[ -z "$TOKEN" ]]; then
 fi
 
 # Run gateway in foreground for container runtime.
+# Disable Control UI by default for in-cluster service usage (avoids non-loopback allowedOrigins requirement).
+openclaw config set gateway.controlUi.enabled false --strict-json || true
+
 exec openclaw gateway run \
   --allow-unconfigured \
   --auth token \

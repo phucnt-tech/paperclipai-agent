@@ -40,7 +40,7 @@ services:
       - paperclip-data:/paperclip
 
   paperclip-openclaw-ceo:
-    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1455}
+    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1505}
     restart: unless-stopped
     environment:
       OPENCLAW_GATEWAY_TOKEN: "${PAPERCLIP_OPENCLAW_INTERNAL_TOKEN:-change_me_internal_token}"
