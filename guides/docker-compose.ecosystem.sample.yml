@@ -40,15 +40,11 @@ services:
       - paperclip-data:/paperclip
 
   paperclip-openclaw-ceo:
-    image: ${PAPERCLIP_OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    image: ${PAPERCLIP_OPENCLAW_IMAGE:-otsphucnt/paperclip-openclaw-ceo:20260312-1441}
     restart: unless-stopped
     environment:
       OPENCLAW_GATEWAY_TOKEN: "${PAPERCLIP_OPENCLAW_INTERNAL_TOKEN:-change_me_internal_token}"
-    # Notes:
-    # - This sample assumes the image can run OpenClaw gateway.
-    # - Replace command/entrypoint as needed for your chosen OpenClaw image.
-    command: >
-      sh -lc "openclaw gateway start && tail -f /dev/null"
+    # Image already starts OpenClaw gateway via built-in entrypoint script.
     volumes:
       - openclaw-home:/root/.openclaw
       - paperclip-data:/paperclip
