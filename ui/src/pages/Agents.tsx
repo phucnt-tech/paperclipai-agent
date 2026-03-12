@@ -27,6 +27,7 @@ const adapterLabels: Record<string, string> = {
   cursor: "Cursor",
   openclaw: "OpenClaw",
   openclaw_gateway: "OpenClaw Gateway",
+  n8n: "n8n Workflow",
   process: "Process",
   http: "HTTP",
 };

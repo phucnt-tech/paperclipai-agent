@@ -8,6 +8,7 @@ import { printOpenClawStreamEvent } from "@paperclipai/adapter-openclaw/cli";
 import { printOpenClawGatewayStreamEvent } from "@paperclipai/adapter-openclaw-gateway/cli";
 import { processCLIAdapter } from "./process/index.js";
 import { httpCLIAdapter } from "./http/index.js";
+import { n8nCLIAdapter } from "./n8n/index.js";
 
 const claudeLocalCLIAdapter: CLIAdapterModule = {
   type: "claude_local",
@@ -55,6 +56,7 @@ const adaptersByType = new Map<string, CLIAdapterModule>(
     openclawGatewayCLIAdapter,
     processCLIAdapter,
     httpCLIAdapter,
+    n8nCLIAdapter,
   ].map((a) => [a.type, a]),
 );
 

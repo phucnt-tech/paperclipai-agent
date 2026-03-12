@@ -8,6 +8,7 @@ import { openClawUIAdapter } from "./openclaw";
 import { openClawGatewayUIAdapter } from "./openclaw-gateway";
 import { processUIAdapter } from "./process";
 import { httpUIAdapter } from "./http";
+import { n8nUIAdapter } from "./n8n";
 
 const adaptersByType = new Map<string, UIAdapterModule>(
   [
@@ -20,6 +21,7 @@ const adaptersByType = new Map<string, UIAdapterModule>(
     openClawGatewayUIAdapter,
     processUIAdapter,
     httpUIAdapter,
+    n8nUIAdapter,
   ].map((a) => [a.type, a]),
 );
 
