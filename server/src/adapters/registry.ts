@@ -127,6 +127,15 @@ const openclawNativeAdapter: ServerAdapterModule = {
         typeof baseConfig.autoPairOnFirstConnect === "boolean"
           ? baseConfig.autoPairOnFirstConnect
           : true,
+      // Native CEO runs can be long; default to 6h if not explicitly configured.
+      timeoutSec:
+        typeof baseConfig.timeoutSec === "number" && Number.isFinite(baseConfig.timeoutSec)
+          ? baseConfig.timeoutSec
+          : 21600,
+      waitTimeoutMs:
+        typeof baseConfig.waitTimeoutMs === "number" && Number.isFinite(baseConfig.waitTimeoutMs)
+          ? baseConfig.waitTimeoutMs
+          : 21600000,
     };
 
     const envDevicePem =
