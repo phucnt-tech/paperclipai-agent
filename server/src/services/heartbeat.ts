@@ -1813,12 +1813,21 @@ export function heartbeatService(db: Db) {
               ),
             );
 
-          if (directReports.length > 0) {
+          const activeReports = directReports
+            .filter((report) => report.status !== "terminated")
+            .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+
+          if (activeReports.length > 0) {
             const childIssues = await tx
               .select({ id: issues.id, title: issues.title, assigneeAgentId: issues.assigneeAgentId })
               .from(issues)
               .where(and(eq(issues.companyId, issue.companyId), eq(issues.parentId, issue.id)));
 
+            const existingByAssignee = new Map(
+              childIssues
+                .filter((child) => child.assigneeAgentId)
+                .map((child) => [child.assigneeAgentId as string, child.id]),
+            );
             const hasScope = Boolean(issue.description && issue.description.trim().length >= 120);
             const hasWorkspaceSignal = issue.projectId
               ? await tx
@@ -1876,54 +1885,63 @@ export function heartbeatService(db: Db) {
                 });
               }
             } else {
-              for (const report of directReports) {
-                if (report.status === "terminated") continue;
+              const targets = activeReports.filter((report) => !existingByAssignee.has(report.id));
 
-                const existingForReport = childIssues.find((child) => child.assigneeAgentId === report.id);
-                if (existingForReport) continue;
-
+              if (targets.length > 0) {
                 const [companyRow] = await tx
                   .update(companies)
-                  .set({ issueCounter: sql`${companies.issueCounter} + 1` })
+                  .set({ issueCounter: sql`${companies.issueCounter} + ${targets.length}` })
                   .where(eq(companies.id, issue.companyId))
                   .returning({ issueCounter: companies.issueCounter, issuePrefix: companies.issuePrefix });
 
-                const issueNumber = companyRow.issueCounter;
-                const identifier = `${companyRow.issuePrefix}-${issueNumber}`;
-                const delegatedTitle = `${issue.title} — ${report.name}`;
+                const startIssueNumber = companyRow.issueCounter - targets.length + 1;
                 const parentRef = issue.identifier ?? issue.id;
-                const delegatedDescription = [
-                  `Auto-delegated from parent issue ${parentRef}.`,
-                  issue.description ? `\n\nParent context:\n${issue.description}` : "",
-                ].join("");
+                const requestDepth = (issue.requestDepth ?? 0) + 1;
 
-                const [childIssue] = await tx.insert(issues).values({
-                  companyId: issue.companyId,
-                  projectId: issue.projectId,
-                  goalId: issue.goalId,
-                  parentId: issue.id,
-                  title: delegatedTitle,
-                  description: delegatedDescription,
-                  status: "todo",
-                  priority: issue.priority,
-                  assigneeAgentId: report.id,
-                  createdByAgentId: agent.id,
-                  issueNumber,
-                  identifier,
-                  requestDepth: (issue.requestDepth ?? 0) + 1,
-                }).returning({ id: issues.id });
-
-                await tx.insert(agentWakeupRequests).values({
-                  companyId: issue.companyId,
-                  agentId: report.id,
-                  source: "on_demand",
-                  triggerDetail: "auto_delegate",
-                  reason: "issue_assigned",
-                  payload: { issueId: childIssue.id },
-                  status: "queued",
-                  requestedByActorType: "agent",
-                  requestedByActorId: agent.id,
+                const issuePayloads = targets.map((report, index) => {
+                  const issueNumber = startIssueNumber + index;
+                  return {
+                    companyId: issue.companyId,
+                    projectId: issue.projectId,
+                    goalId: issue.goalId,
+                    parentId: issue.id,
+                    title: `${issue.title} — ${report.name}`,
+                    description: [
+                      `Auto-delegated from parent issue ${parentRef}.`,
+                      issue.description ? `\n\nParent context:\n${issue.description}` : "",
+                    ].join(""),
+                    status: "todo" as const,
+                    priority: issue.priority,
+                    assigneeAgentId: report.id,
+                    createdByAgentId: agent.id,
+                    issueNumber,
+                    identifier: `${companyRow.issuePrefix}-${issueNumber}`,
+                    requestDepth,
+                  };
                 });
+
+                const createdChildren = await tx
+                  .insert(issues)
+                  .values(issuePayloads)
+                  .returning({ id: issues.id, assigneeAgentId: issues.assigneeAgentId });
+
+                if (createdChildren.length > 0) {
+                  await tx.insert(agentWakeupRequests).values(
+                    createdChildren
+                      .filter((child) => Boolean(child.assigneeAgentId))
+                      .map((child) => ({
+                        companyId: issue.companyId,
+                        agentId: child.assigneeAgentId as string,
+                        source: "on_demand" as const,
+                        triggerDetail: "auto_delegate" as const,
+                        reason: "issue_assigned",
+                        payload: { issueId: child.id },
+                        status: "queued" as const,
+                        requestedByActorType: "agent" as const,
+                        requestedByActorId: agent.id,
+                      })),
+                  );
+                }
               }
             }
           }
