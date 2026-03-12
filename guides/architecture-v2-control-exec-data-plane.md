@@ -27,7 +27,42 @@ Status: draft for review before implementation
 - `remote-openclaw-workers`: independent worker agents via gateway
 - `notification-service`: Telegram event sink
 
-## 3) Key runtime contracts
+## 3) Shared memory/storage model (append-first)
+
+### Goals
+- Keep enough cross-agent context without leaking unnecessary data
+- Make history auditable/replayable
+- Keep sync simple via Git
+
+### Storage strategy
+- Use a dedicated repo for Paperclip context (e.g. `paperclip-context`)
+- Data tree is append-first:
+  - daily logs append-only (`memory/YYYY-MM-DD.md`)
+  - run events append-only (`events/YYYY/MM/DD/*.jsonl`)
+  - decisions append-only (`decisions/*.md`)
+- Avoid destructive rewrites in normal flow; corrections are appended as new entries.
+
+### Sync mechanism
+- CEO native agent performs periodic `commit + push` (e.g. every 15-30m or on run finalization batches)
+- Remote agents do scoped `pull` before execution and optional scoped writeback after execution
+- Sync is scope-bound (company/project/issue), not full-repo dump by default
+
+### Scope partitioning
+- `context/company/<companyId>/...`
+- `context/project/<projectId>/...`
+- `context/issue/<issueId>/...`
+
+Remote agent receives only required scope paths for assigned task.
+
+### Conflict handling
+- Prefer append files + JSONL to reduce merge conflicts
+- If conflict occurs:
+  1) remote agent rebases/pulls
+  2) re-appends unresolved lines
+  3) retries push
+- CEO can run periodic compaction into curated summaries without deleting raw append logs.
+
+## 4) Key runtime contracts
 
 ### A) Delegation contract
 - Parent issue creates child issues with explicit assignees
@@ -48,7 +83,7 @@ Each event should include:
 - `agentId`, `adapterType`
 - `timestamp`, `status`, `summary/error`
 
-## 4) Policy/guardrails (minimal)
+## 5) Policy/guardrails (minimal)
 
 Even with broad app-level permissions, keep infra-safe defaults:
 1. No Docker socket mount
@@ -60,14 +95,14 @@ Governance rules:
 - Remote workers execute scoped tasks and report status
 - Governance-critical transitions stay in control plane
 
-## 5) Reliability rules
+## 6) Reliability rules
 
 - Idempotency keys for delegated wakeups and callbacks
 - Dedupe markers for parent comments (`[child-run:<runId>]`)
 - Retry with backoff for notification delivery
 - Deterministic workspace paths per project/agent
 
-## 6) Rollout proposal
+## 7) Rollout proposal
 
 Phase 1 (done/near-done)
 - Child -> parent reporting
@@ -82,7 +117,7 @@ Phase 3
 - Unified callback protocol for remote adapters (gateway + n8n)
 - UI policy editor and observability panels
 
-## 7) Open questions before implementation
+## 8) Open questions before implementation
 
 - Do we auto-close parent when all children done, or require CEO confirmation?
 - Which events are mandatory for Telegram vs optional?
