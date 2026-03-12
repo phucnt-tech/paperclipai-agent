@@ -36,6 +36,16 @@ const PROJECT_WORKSPACES_ROOT =
   process.env.PAPERCLIP_PROJECT_WORKSPACES_ROOT.trim().length > 0
     ? process.env.PAPERCLIP_PROJECT_WORKSPACES_ROOT.trim()
     : "/paperclip/instances/default/workspaces");
+const TELEGRAM_LOG_ENABLED =
+  process.env.PAPERCLIP_TELEGRAM_LOG_ENABLED === "true";
+const TELEGRAM_CHAT_ID =
+  typeof process.env.PAPERCLIP_TELEGRAM_CHAT_ID === "string"
+    ? process.env.PAPERCLIP_TELEGRAM_CHAT_ID.trim()
+    : "";
+const TELEGRAM_BOT_TOKEN =
+  typeof process.env.PAPERCLIP_TELEGRAM_BOT_TOKEN === "string"
+    ? process.env.PAPERCLIP_TELEGRAM_BOT_TOKEN.trim()
+    : "";
 
 function appendExcerpt(prev: string, chunk: string) {
   return appendWithCap(prev, chunk, MAX_EXCERPT_BYTES);
@@ -43,6 +53,58 @@ function appendExcerpt(prev: string, chunk: string) {
 
 function resolveProjectScopedWorkspaceDir(projectId: string) {
   return path.join(PROJECT_WORKSPACES_ROOT, `project-${projectId}`);
+}
+
+function isTelegramEventLoggingEnabled() {
+  return TELEGRAM_LOG_ENABLED && TELEGRAM_CHAT_ID.length > 0 && TELEGRAM_BOT_TOKEN.length > 0;
+}
+
+async function sendTelegramEventMessage(text: string) {
+  if (!isTelegramEventLoggingEnabled()) return;
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text,
+        disable_web_page_preview: true,
+      }),
+    });
+
+    if (!res.ok) {
+      logger.warn({ status: res.status }, "failed to send heartbeat event to telegram");
+    }
+  } catch (err) {
+    logger.warn({ err }, "telegram event delivery failed");
+  }
+}
+
+function buildTelegramRunEventMessage(input: {
+  phase: "started" | "completed" | "failed" | "timed_out" | "cancelled";
+  run: typeof heartbeatRuns.$inferSelect;
+  agent: typeof agents.$inferSelect;
+  extra?: string | null;
+}) {
+  const context = parseObject(input.run.contextSnapshot);
+  const issueId = readNonEmptyString(context.issueId);
+  const taskId = readNonEmptyString(context.taskId);
+  const runShort = input.run.id.slice(0, 8);
+  const target = issueId ? `issue=${issueId}` : taskId ? `task=${taskId}` : "task=n/a";
+
+  const icon =
+    input.phase === "started"
+      ? "▶️"
+      : input.phase === "completed"
+        ? "✅"
+        : input.phase === "cancelled"
+          ? "⏹️"
+          : "❌";
+
+  return `${icon} ${input.phase.toUpperCase()} | agent=${input.agent.name} (${input.agent.role}) | run=${runShort} | ${target}${
+    input.extra ? ` | ${input.extra}` : ""
+  }`;
 }
 
 function normalizeMaxConcurrentRuns(value: unknown) {
@@ -1264,6 +1326,13 @@ export function heartbeatService(db: Db) {
         level: "info",
         message: "run started",
       });
+      await sendTelegramEventMessage(
+        buildTelegramRunEventMessage({
+          phase: "started",
+          run: currentRun,
+          agent,
+        }),
+      );
 
       handle = await runLogStore.begin({
         companyId: run.companyId,
@@ -1443,6 +1512,15 @@ export function heartbeatService(db: Db) {
           },
         });
 
+        await sendTelegramEventMessage(
+          buildTelegramRunEventMessage({
+            phase: outcome === "succeeded" ? "completed" : outcome,
+            run: finalizedRun,
+            agent,
+            extra: adapterResult.errorMessage ?? null,
+          }),
+        );
+
         await releaseIssueExecutionAndPromote(finalizedRun);
       }
 
@@ -1506,6 +1584,14 @@ export function heartbeatService(db: Db) {
           level: "error",
           message,
         });
+        await sendTelegramEventMessage(
+          buildTelegramRunEventMessage({
+            phase: "failed",
+            run: failedRun,
+            agent,
+            extra: message,
+          }),
+        );
         await releaseIssueExecutionAndPromote(failedRun);
 
         await updateRuntimeState(agent, failedRun, {
