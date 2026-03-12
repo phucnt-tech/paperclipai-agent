@@ -81,17 +81,41 @@ async function sendTelegramEventMessage(text: string) {
   }
 }
 
-function buildTelegramRunEventMessage(input: {
-  phase: "started" | "completed" | "failed" | "timed_out" | "cancelled";
-  run: typeof heartbeatRuns.$inferSelect;
-  agent: typeof agents.$inferSelect;
-  extra?: string | null;
-}) {
+async function buildTelegramRunEventMessage(
+  db: Db,
+  input: {
+    phase: "started" | "completed" | "failed" | "timed_out" | "cancelled";
+    run: typeof heartbeatRuns.$inferSelect;
+    agent: typeof agents.$inferSelect;
+    extra?: string | null;
+  },
+) {
   const context = parseObject(input.run.contextSnapshot);
   const issueId = readNonEmptyString(context.issueId);
   const taskId = readNonEmptyString(context.taskId);
   const runShort = input.run.id.slice(0, 8);
-  const target = issueId ? `issue=${issueId}` : taskId ? `task=${taskId}` : "task=n/a";
+
+  let issueTitle: string | null = null;
+  if (issueId) {
+    try {
+      const rows = await db
+        .select({ title: issues.title })
+        .from(issues)
+        .where(and(eq(issues.id, issueId), eq(issues.companyId, input.run.companyId)))
+        .limit(1);
+      issueTitle = rows[0]?.title ?? null;
+    } catch {
+      issueTitle = null;
+    }
+  }
+
+  const target = issueId
+    ? issueTitle
+      ? `issue=${issueId} "${issueTitle}"`
+      : `issue=${issueId}`
+    : taskId
+      ? `task=${taskId}`
+      : "task=n/a";
 
   const icon =
     input.phase === "started"
@@ -1327,7 +1351,7 @@ export function heartbeatService(db: Db) {
         message: "run started",
       });
       await sendTelegramEventMessage(
-        buildTelegramRunEventMessage({
+        await buildTelegramRunEventMessage(db, {
           phase: "started",
           run: currentRun,
           agent,
@@ -1513,7 +1537,7 @@ export function heartbeatService(db: Db) {
         });
 
         await sendTelegramEventMessage(
-          buildTelegramRunEventMessage({
+          await buildTelegramRunEventMessage(db, {
             phase: outcome === "succeeded" ? "completed" : outcome,
             run: finalizedRun,
             agent,
@@ -1585,7 +1609,7 @@ export function heartbeatService(db: Db) {
           message,
         });
         await sendTelegramEventMessage(
-          buildTelegramRunEventMessage({
+          await buildTelegramRunEventMessage(db, {
             phase: "failed",
             run: failedRun,
             agent,
